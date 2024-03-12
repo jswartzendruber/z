@@ -2,6 +2,22 @@
 #include <unordered_map>
 #include <cassert>
 
+StringId StringTable::intern(std::string_view s) {
+  auto id = table.find(s);
+
+  if (id == table.end()) {
+    auto strId = StringId{counter++};
+    table[s] = strId;
+    return strId;
+  } else {
+    return id->second;
+  }
+}
+
+bool operator==(const StringId& lhs, const StringId& rhs) {
+    return lhs.id == rhs.id;
+}
+
 static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
   {TokenType::LParen, "LParen"},
   {TokenType::RParen, "RParen"},
@@ -20,12 +36,17 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
   {TokenType::IntegerLiteral, "IntegerLiteral"},
   {TokenType::StringLiteral, "StringLiteral"},
   {TokenType::FloatLiteral, "FloatLiteral"},
-  {TokenType::BooleanTrue, "BooleanTrue"},
-  {TokenType::BooleanFalse, "BooleanFalse"},
+  {TokenType::IfKeyword, "IfKeyword"},
+  {TokenType::ElseKeyword, "ElseKeyword"},
+  {TokenType::WhileKeyword, "WhileKeyword"},
+  {TokenType::ForKeyword, "ForKeyword"},
+  {TokenType::MatchKeyword, "MatchKeyword"},
+  {TokenType::TrueKeyword, "TrueKeyword"},
+  {TokenType::FalseKeyword, "FalseKeyword"},
 };
 
 std::string tokenTypeName(TokenType type) {
-  assert(tokenTypeNames.size() - 1 == static_cast<std::size_t>(TokenType::BooleanFalse) && "Token names table is out of sync.");
+  assert(tokenTypeNames.size() - 1 == static_cast<std::size_t>(TokenType::FalseKeyword) && "Token names table is out of sync.");
 
   auto it = tokenTypeNames.find(type);
   if (it != tokenTypeNames.end()) {
@@ -41,18 +62,40 @@ Token Lexer::makeToken(TokenType type, std::size_t tokenLen) {
   return token;
 }
 
+Token Lexer::makeToken(TokenType type, std::string_view str) {
+  return Token(type, str);
+}
+
 bool isAlphanumeric(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
 }
 
-Token Lexer::makeIdentifier() {
-  int len = 1; // We already checked the first character to enter this function
+Token Lexer::makeIdentifierOrBoolean() {
+  // Find full identifier and intern it
+  int start = index;
 
-  while (index + len < src.length() && isAlphanumeric(src[index + len])) {
-    len++;
+  while (index < src.length() && isAlphanumeric(src[index])) {
+    index++;
   }
 
-  return makeToken(TokenType::Identifier, len);
+  auto str = std::string_view(src.data() + start, index - start);
+  auto strId = stringTable->intern(str);
+
+  // Save true and false in our string table to quickly check if the
+  // str is true or false. With this being a static const, true and false
+  // are interned once here on the first call to this function. In future
+  // calls, only the result of the function call is used, true and false
+  // are not repeatedly interned.
+  static const StringId trueStr = stringTable->intern("true");
+  static const StringId falseStr = stringTable->intern("false");
+
+  if (strId == trueStr) {
+    return makeToken(TokenType::TrueKeyword, str);
+  } else if (strId == falseStr) {
+    return makeToken(TokenType::FalseKeyword, str);
+  } else {
+    return makeToken(TokenType::Identifier, str);
+  }
 }
 
 std::optional<Token> Lexer::handleWhitespace() {
@@ -102,7 +145,8 @@ Token Lexer::makeNumber() {
     }
   }
 
-  assert(0 && "Unreachable.");
+  std::cout << "Unreachable.\n";
+  exit(1);
 }
 
 Token Lexer::makeString() {
@@ -159,29 +203,12 @@ std::optional<Token> Lexer::nextToken() {
   case '8': case '9':
     return makeNumber();
 
-  case 't':
-    if (index + 3 < src.length() &&
-	src[index + 1] == 'r' &&
-	src[index + 2] == 'u' &&
-	src[index + 3] == 'e') {
-      return makeToken(TokenType::BooleanTrue, 4); 
-    }
-    [[fallthrough]];
-  case 'f':
-    if (index + 4 < src.length() &&
-	src[index + 1] == 'a' &&
-	src[index + 2] == 'l' &&
-	src[index + 3] == 's' &&
-	src[index + 4] == 'e') {
-      return makeToken(TokenType::BooleanFalse, 5); 
-    }
-    [[fallthrough]];
   case 'a': case 'A':
   case 'b': case 'B':
   case 'c': case 'C':
   case 'd': case 'D':
   case 'e': case 'E':
-  case 'F':
+  case 'f': case 'F':
   case 'g': case 'G':
   case 'h': case 'H':
   case 'i': case 'I':
@@ -195,19 +222,20 @@ std::optional<Token> Lexer::nextToken() {
   case 'q': case 'Q':
   case 'r': case 'R':
   case 's': case 'S':
-  case 'T':
+  case 't': case 'T':
   case 'u': case 'U':
   case 'v': case 'V':
   case 'w': case 'W':
   case 'x': case 'X':
   case 'y': case 'Y':
   case 'z': case 'Z':
-    return makeIdentifier();
+    return makeIdentifierOrBoolean();
 
   default:
     return std::nullopt;
 
   };
 
-  assert(0 && "Unreachable.");
+  std::cout << "Unreachable.\n";
+  exit(1);
 }

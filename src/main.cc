@@ -2,7 +2,8 @@
 
 int main () {
   auto code = "fn 123\n\n main \"hi\" 3.14 (){} true false;";
-  auto lexer = Lexer(code);
+  auto stringTable = StringTable{};
+  auto lexer = Lexer(code, &stringTable);
 
   try {
     std::optional<Token> token;

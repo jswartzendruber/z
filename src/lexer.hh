@@ -6,6 +6,23 @@
 #include <optional>
 #include <ostream>
 #include <iostream>
+#include <unordered_map>
+#include <stdint.h>
+
+// An ID that represents a string inside the StringTable.
+struct StringId {
+  uint32_t id;
+};
+
+// Used to intern strings for fast equality checking
+struct StringTable {
+  std::unordered_map<std::string_view, StringId> table;
+  uint32_t counter;
+
+  StringTable() : table(), counter(0) {}
+
+  StringId intern(std::string_view s);
+};
 
 // BooleanLiteral must be the last token defined in this enum.
 // This has to do with the assert in lexer.cc, keeping the
@@ -28,8 +45,13 @@ enum class TokenType {
   IntegerLiteral,
   StringLiteral,
   FloatLiteral,
-  BooleanTrue,
-  BooleanFalse,
+  IfKeyword,
+  ElseKeyword,
+  WhileKeyword,
+  ForKeyword,
+  MatchKeyword,
+  TrueKeyword,
+  FalseKeyword,
 };
 
 std::string tokenTypeName(TokenType type);
@@ -55,18 +77,24 @@ struct Lexer {
   const std::string src;
   std::size_t index;
   std::size_t currentLine;
+  StringTable *stringTable;
 
-  Lexer(const std::string src) : src(src), index(0), currentLine(1) {}
+  Lexer(const std::string src, StringTable *stringTable) : src(src), index(0), currentLine(1), stringTable(stringTable) {}
 
   // Advances the index within the source string, and returns the next token.
   // If there are no more tokens, returns none.
   std::optional<Token> nextToken();
 
 private:
-  // Helper to construct tokens and update their lengths when lexing.
+  // Helper to construct tokens and update their lengths when lexing. This also
+  // updates the current index in the lexer with the tokenLen.
   Token makeToken(TokenType type, std::size_t tokenLen);
 
-  Token makeIdentifier();
+  // Helper to construct tokens. This method does NOT update the current lexer
+  // index for you.
+  Token makeToken(TokenType type, std::string_view src);
+
+  Token makeIdentifierOrBoolean();
   Token makeNumber();
   Token makeString();
 
