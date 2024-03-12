@@ -17,6 +17,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
+endif()
+
 add_executable(z src/main.cc src/lexer.cc)
 target_compile_options(z PRIVATE ${COMPILER_WARNINGS})
 
