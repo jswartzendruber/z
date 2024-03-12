@@ -28,8 +28,8 @@ enum class TokenType {
   IntegerLiteral,
   StringLiteral,
   FloatLiteral,
-  CharacterLiteral,
-  BooleanLiteral,
+  BooleanTrue,
+  BooleanFalse,
 };
 
 std::string tokenTypeName(TokenType type);
@@ -48,12 +48,15 @@ struct Token {
   }
 };
 
+struct UnclosedDelimiter {};
+
 // Keeps track of what we have lexed so far.
 struct Lexer {
   const std::string src;
   std::size_t index;
+  std::size_t currentLine;
 
-  Lexer(const std::string src) : src(src), index(0) {}
+  Lexer(const std::string src) : src(src), index(0), currentLine(1) {}
 
   // Advances the index within the source string, and returns the next token.
   // If there are no more tokens, returns none.
@@ -62,6 +65,14 @@ struct Lexer {
 private:
   // Helper to construct tokens and update their lengths when lexing.
   Token makeToken(TokenType type, std::size_t tokenLen);
+
+  Token makeIdentifier();
+  Token makeNumber();
+  Token makeString();
+
+  // Consumes whitespace until it reaches any other token, then calls
+  // Lexer::nextToken and returns the result.
+  std::optional<Token> handleWhitespace();
 };
 
 #endif
