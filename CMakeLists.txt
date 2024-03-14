@@ -8,6 +8,7 @@ set(CMAKE_BUILD_TYPE "Debug")
 set(COMPILER_WARNINGS
     "-Wall"
     "-Wextra"
+    "-Wunused"
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
