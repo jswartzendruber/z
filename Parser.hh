@@ -1,7 +1,7 @@
 #ifndef PARSER_HH
 #define PARSER_HH
 
-#include "lexer.hh"
+#include "Lexer.hh"
 
 enum class Operation {
   Add,

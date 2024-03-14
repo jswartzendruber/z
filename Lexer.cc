@@ -1,4 +1,4 @@
-#include "lexer.hh"
+#include "Lexer.hh"
 #include <unordered_map>
 #include <cassert>
 

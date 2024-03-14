@@ -7,7 +7,7 @@
 #include <ostream>
 #include <iostream>
 #include <unordered_map>
-#include <stdint.h>
+#include <cstdint>
 
 // An ID that represents a string inside the StringTable.
 struct StringId {

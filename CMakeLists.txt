@@ -23,7 +23,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 endif()
 
-add_executable(z src/main.cc src/lexer.cc)
+add_executable(z Main.cc Lexer.cc Parser.cc BumpAllocator.cc)
 target_compile_options(z PRIVATE ${COMPILER_WARNINGS})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
