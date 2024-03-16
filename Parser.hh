@@ -18,8 +18,8 @@ public:
   } type;
 
   Expression(Expression::Type type) : type(type) {}
-  virtual ~Expression() = default;
-  virtual std::string toString() = 0;
+  virtual void print(std::ostream& os) const = 0;
+  friend std::ostream& operator<<(std::ostream& os, const Expression& node);
 };
 
 class IntegerValue : public Expression {
@@ -27,8 +27,7 @@ public:
   size_t val;
 
   IntegerValue(size_t val) : Expression(Expression::Type::IntegerValue), val(val) {}
-  std::string toString();
-  virtual ~IntegerValue() = default;
+  void print(std::ostream& os) const;
 };
 
 class BinaryExpression : public Expression {
@@ -38,7 +37,7 @@ public:
   Operation op;
 
   BinaryExpression(Operation op, Expression *lhs, Expression *rhs) : Expression(Expression::Type::BinaryExpression), lhs(lhs), rhs(rhs), op(op) {}
-  std::string toString();
+  void print(std::ostream& os) const;
   virtual ~BinaryExpression() = default;
 };
 

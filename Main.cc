@@ -1,5 +1,6 @@
 #include "BumpAllocator.hh"
 #include "Lexer.hh"
+#include "Parser.hh"
 #include <fstream>
 #include <sstream>
 
@@ -41,9 +42,11 @@ int main (int argc, char** argv) {
   }
   
   auto ba = BumpAllocator(1024 * 1024);
-  int *a = ba.allocate(123);
+  auto x = ba.allocate(IntegerValue(24));
+  auto y = ba.allocate(IntegerValue(1324));
+  auto z = ba.allocate(BinaryExpression(Operation::Add, x, y));
 
-  std::cout << *a << "\n";
+  std::cout << *z << "\n";
 
   return 0;
 }

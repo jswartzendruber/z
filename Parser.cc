@@ -1,5 +1,4 @@
 #include "Parser.hh"
-#include <sstream>
 
 std::string operationToString(Operation op) {
   switch (op) {
@@ -15,8 +14,16 @@ std::string operationToString(Operation op) {
   return "Unreachable.";
 }
 
-std::string BinaryExpression::toString() {
-  std::stringstream ss;
-  ss << "BinaryExpression( " << lhs->toString() << " " << operationToString(op) << " " << rhs->toString() << ")";
-  return ss.str();
+std::ostream& operator<<(std::ostream& os, const Expression& node) {
+  node.print(os);
+  return os;
 }
+
+void IntegerValue::print(std::ostream& os) const {
+  os << "IntegerValue(" << val << ")";
+}
+
+void BinaryExpression::print(std::ostream& os) const {
+  os << "BinaryExpression(" << *lhs << " " << operationToString(op) << " " << *rhs << ")";
+}
+
