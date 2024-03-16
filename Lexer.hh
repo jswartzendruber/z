@@ -73,13 +73,13 @@ struct Token {
 struct UnclosedDelimiter {};
 
 // Keeps track of what we have lexed so far.
-struct Lexer {
+struct LexerInternal {
   const std::string src;
   std::size_t index;
   std::size_t currentLine;
   StringTable *stringTable;
 
-  Lexer(const std::string src, StringTable *stringTable) : src(src), index(0), currentLine(1), stringTable(stringTable) {}
+  LexerInternal(const std::string src, StringTable *stringTable) : src(src), index(0), currentLine(1), stringTable(stringTable) {}
 
   // Advances the index within the source string, and returns the next token.
   // If there are no more tokens, returns none.
@@ -101,6 +101,24 @@ private:
   // Consumes whitespace until it reaches any other token, then calls
   // Lexer::nextToken and returns the result.
   std::optional<Token> handleWhitespace();
+};
+
+struct Lexer {
+private:
+  LexerInternal lexerInternal;
+  std::optional<Token> current;
+  std::optional<Token> next;
+
+public:
+  Lexer(std::string code, StringTable *stringTable);
+
+  // Returns the next token and consumes it.
+  std::optional<Token> nextToken();
+
+  // Returns the next token without consuming it.
+  std::optional<Token> peekToken();
+
+  size_t currentLine();
 };
 
 #endif

@@ -39,7 +39,11 @@ private:
   }
 
 public:
+  BumpAllocator() = delete;
   BumpAllocator(size_t size);
+  BumpAllocator& operator=(const BumpAllocator&) = delete;
+  BumpAllocator(BumpAllocator&&) = delete;
+  BumpAllocator& operator=(BumpAllocator&&) = delete;
   ~BumpAllocator();
 
   // Reserve space for t and save it in the allocator

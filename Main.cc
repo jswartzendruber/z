@@ -1,5 +1,3 @@
-#include "BumpAllocator.hh"
-#include "Lexer.hh"
 #include "Parser.hh"
 #include <fstream>
 #include <sstream>
@@ -31,22 +29,19 @@ int main (int argc, char** argv) {
     auto lexer = Lexer(code, &stringTable);
 
     try {
-      std::optional<Token> token;
-      while ((token = lexer.nextToken())) {
-	std::cout << *token << "\n";
+      auto allocator = BumpAllocator(1024 * 1024);
+      auto parser = Parser(&allocator, lexer);
+      auto ex = parser.parseExpression();
+      if (ex.has_value()) {
+	std::cout << *ex.value() << "\n";
+      } else {
+	std::cout << "no value.\n";
       }
     } catch (UnclosedDelimiter _) {
-      std::cerr << "Error: Unclosed delimeter beginning at line " << lexer.currentLine << "\n";
+      std::cerr << "Error: Unclosed delimeter beginning at line " << lexer.currentLine() << "\n";
       return 1;
     }
   }
-  
-  auto ba = BumpAllocator(1024 * 1024);
-  auto x = ba.allocate(IntegerValue(24));
-  auto y = ba.allocate(IntegerValue(1324));
-  auto z = ba.allocate(BinaryExpression(Operation::Add, x, y));
-
-  std::cout << *z << "\n";
 
   return 0;
 }

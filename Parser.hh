@@ -2,6 +2,7 @@
 #define PARSER_HH
 
 #include "Lexer.hh"
+#include "BumpAllocator.hh"
 
 enum class Operation {
   Add,
@@ -24,9 +25,17 @@ public:
 
 class IntegerValue : public Expression {
 public:
-  size_t val;
+  uint64_t val;
 
-  IntegerValue(size_t val) : Expression(Expression::Type::IntegerValue), val(val) {}
+  IntegerValue(uint64_t val) : Expression(Expression::Type::IntegerValue), val(val) {}
+  void print(std::ostream& os) const;
+};
+
+class FloatValue : public Expression {
+public:
+  double val;
+
+  FloatValue(double val) : Expression(Expression::Type::IntegerValue), val(val) {}
   void print(std::ostream& os) const;
 };
 
@@ -41,15 +50,16 @@ public:
   virtual ~BinaryExpression() = default;
 };
 
-class Stmt {
+struct Parser {
+private:
+  BumpAllocator *allocator;
+  Lexer lexer;
 
-  class IfStmt {
-    
-  };
+  std::optional<Expression *> parseExpressionBp(int minbp);
 
-  union {
-    
-  };
+public:
+  Parser(BumpAllocator *allocator, Lexer lexer) : allocator(allocator), lexer(lexer) {}
+  std::optional<Expression *> parseExpression();
 };
 
 #endif

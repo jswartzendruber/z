@@ -1,5 +1,4 @@
 #include "Lexer.hh"
-#include <unordered_map>
 #include <cassert>
 
 StringId StringTable::intern(std::string_view s) {
@@ -56,13 +55,13 @@ std::string tokenTypeName(TokenType type) {
   return "Unknown";
 }
 
-Token Lexer::makeToken(TokenType type, std::size_t tokenLen) {
+Token LexerInternal::makeToken(TokenType type, std::size_t tokenLen) {
   auto token = Token(type, std::string_view(src.data() + index, tokenLen));
   index += tokenLen;
   return token;
 }
 
-Token Lexer::makeToken(TokenType type, std::string_view str) {
+Token LexerInternal::makeToken(TokenType type, std::string_view str) {
   return Token(type, str);
 }
 
@@ -70,7 +69,7 @@ bool isAlphanumeric(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
 }
 
-Token Lexer::makeIdentifierOrBoolean() {
+Token LexerInternal::makeIdentifierOrBoolean() {
   // Find full identifier and intern it
   int start = index;
 
@@ -98,7 +97,7 @@ Token Lexer::makeIdentifierOrBoolean() {
   }
 }
 
-std::optional<Token> Lexer::handleWhitespace() {
+std::optional<Token> LexerInternal::handleWhitespace() {
   index++; // Consume the whitespace character that caused us to enter this function
 
   while (index < src.length()) {
@@ -118,7 +117,7 @@ std::optional<Token> Lexer::handleWhitespace() {
   return std::nullopt;
 }
 
-Token Lexer::makeNumber() {
+Token LexerInternal::makeNumber() {
   int len = 1; // We already checked the first character to enter this function
   bool floating = false;
 
@@ -137,19 +136,20 @@ Token Lexer::makeNumber() {
 	return makeToken(TokenType::FloatLiteral, len);
       } else {
 	floating = true;
-	len++; break;
+	len++;
+	break;
       }
 
-    default:
-      return makeToken((floating) ? TokenType::FloatLiteral : TokenType::IntegerLiteral, len);
+      // Ran out of number tokens, bail.
+    default: goto end;
     }
   }
 
-  std::cout << "Unreachable.\n";
-  exit(1);
+ end:
+  return makeToken((floating) ? TokenType::FloatLiteral : TokenType::IntegerLiteral, len);
 }
 
-Token Lexer::makeString() {
+Token LexerInternal::makeString() {
   int len = 1; // The opening quote
 
   while (index + len < src.length()) {
@@ -165,7 +165,7 @@ Token Lexer::makeString() {
   throw UnclosedDelimiter{};
 }
 
-std::optional<Token> Lexer::nextToken() {
+std::optional<Token> LexerInternal::nextToken() {
   if (index >= src.length()) {
     return std::nullopt;
   }
@@ -236,6 +236,26 @@ std::optional<Token> Lexer::nextToken() {
 
   };
 
-  std::cout << "Unreachable.\n";
+  std::cout << "LexerInternal::nextToken Unreachable.\n";
   exit(1);
+}
+
+Lexer::Lexer(std::string code, StringTable *stringTable) : lexerInternal(code, stringTable) {
+  current = lexerInternal.nextToken();
+  next = lexerInternal.nextToken();
+}
+
+std::optional<Token> Lexer::nextToken() {
+  std::optional<Token> res = current;
+  current = next;
+  next = lexerInternal.nextToken();
+  return res;
+}
+
+std::optional<Token> Lexer::peekToken() {
+  return current;
+}
+
+size_t Lexer::currentLine() {
+  return lexerInternal.currentLine;
 }
