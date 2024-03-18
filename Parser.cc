@@ -1,6 +1,7 @@
 #include "Parser.hh"
 #include "Lexer.hh"
 #include <charconv>
+#include <vector>
 
 // Acts like the rust '?' operator. Returns early from the function
 // if the optional is none, otherwise assigns the optional to 'name'
@@ -33,6 +34,10 @@ std::ostream& operator<<(std::ostream& os, const Expression& node) {
   return os;
 }
 
+void StringValue::print(std::ostream& os) const {
+  os << "StringValue(" << val << ")";
+}
+
 void IntegerValue::print(std::ostream& os) const {
   os << "IntegerValue(" << val << ")";
 }
@@ -43,6 +48,17 @@ void FloatValue::print(std::ostream& os) const {
 
 void BinaryExpression::print(std::ostream& os) const {
   os << "BinaryExpression(" << *lhs << " " << operationToString(op) << " " << *rhs << ")";
+}
+
+void FunctionCall::print(std::ostream& os) const {
+  os << "FunctionCall(" << name << "(";
+  for (int i = 0; i < arguments.len(); i++) {
+    if (i > 0) {
+      os << " ";
+    }
+    os << *arguments[i];
+  }
+  os << "))";
 }
 
 std::optional<std::tuple<Operation, int, int>> infixBindingPower(TokenType type) {
@@ -78,6 +94,9 @@ std::optional<std::tuple<Operation, int, int>> infixBindingPower(TokenType type)
 std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
   auto lhsToken = TRY(lexer.nextToken());
 
+  // We may use this to check for a function call if the lhsToken is a string literal.
+  std::optional<Token> peekLparen;
+
   Expression *lhs;
   switch (lhsToken.type) {
   case TokenType::IntegerLiteral:
@@ -89,25 +108,60 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
   case TokenType::FloatLiteral:
     double lhsFloatValue;
     std::from_chars(lhsToken.src.data(), lhsToken.src.data() + lhsToken.src.size(), lhsFloatValue);
-    lhs = allocator->allocate(FloatValue(lhsIntValue));
+    lhs = allocator->allocate(FloatValue(lhsFloatValue));
+    break;
+
+  case TokenType::Identifier:
+    // Is this a function call, or just an identifier?
+    // TODO: variables
+    peekLparen = lexer.peekToken();
+    if (peekLparen.has_value()) {
+      if (peekLparen.value().type == TokenType::LParen) {
+	// Parse function.
+	lexer.nextToken(); // Eat '('
+
+	std::vector<Expression *> arguments = {};
+
+	// Collect arguments until we hit closing ')'
+	std::optional<Token> token;
+	while ((token = lexer.peekToken()) && token.value().type != TokenType::RParen) {
+	  std::optional<Expression *> arg = parseExpression();
+	  if (arg.has_value()) {
+	    arguments.push_back(arg.value());
+	  } else {
+	    std::cout << "Error: expected function argument.\n";
+	  }
+	}
+
+	auto args = TinyVector<Expression *>(arguments.size(), allocator);
+	for (auto arg : arguments) {
+	  args.push(arg);
+	}
+	return allocator->allocate(FunctionCall(lhsToken.src, args));
+      }
+    }
+    break;
+
+  case TokenType::StringLiteral:
+    lhs = allocator->allocate(StringValue(lhsToken.src));
     break;
 
   default:
-    std::cerr << "Error: Expected number, got " << lhsToken << "\n";
+    std::cerr << "Error: Expression, got " << lhsToken << "\n";
     return std::nullopt;
   }
 
   while (true) {
     std::optional<Token> optOpToken = lexer.peekToken();
     if (!optOpToken.has_value()) {
-      goto end;
+      return lhs;
     }
     auto opToken = TRY(optOpToken);
 
     auto optIbp = infixBindingPower(opToken.type);
     if (!optIbp.has_value()) {
-      std::cerr << "Error: Expected operation, got " << opToken << "\n";
-      return std::nullopt;
+      // Must not be any expression left to parse. Return what we have.
+      return lhs;
     }
     auto ibp = TRY(optIbp);
 
@@ -116,7 +170,7 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     int rbp = std::get<2>(ibp);
 
     if (lbp < minbp) {
-      goto end;
+      return lhs;
     }
 
     lexer.nextToken(); // Consume operation token
@@ -125,7 +179,6 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     lhs = allocator->allocate(BinaryExpression(op, lhs, rhs));
   }
 
- end:
   return lhs;
 }
 

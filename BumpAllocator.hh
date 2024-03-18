@@ -15,8 +15,7 @@ private:
 
   // Allocate sizeof(Type) bytes and return the pointer
   template <class Type>
-  Type *allocateInternal() {
-    size_t size = sizeof(Type);
+  Type *allocateInternal(size_t size) {
     size_t align = 8;
 
     // Align 'curr_offset' forward to the specified alignment
@@ -49,7 +48,13 @@ public:
   // Reserve space for t and save it in the allocator
   template <class T>
   T *allocate(T t) {
-    return new (allocateInternal<T>()) T{t};
+    size_t size = sizeof(T);
+    return new (allocateInternal<T>(size)) T{t};
+  }
+
+  template <class T>
+  T *allocateBytes(int bytes) {
+    return allocateInternal<T>(bytes);
   }
 };
 
