@@ -5,33 +5,33 @@
 
 // Acts like the rust '?' operator. Returns early from the function
 // if the optional is none, otherwise assigns the optional to 'name'
-// and continues execution. 
-#define TRY(opt)				\
-  ({						\
-    auto val = opt;				\
-    if (!val.has_value()) {			\
-      return std::nullopt;			\
-    }						\
-    val.value();				\
+// and continues execution.
+#define TRY(opt)                                                               \
+  ({                                                                           \
+    auto val = opt;                                                            \
+    if (!val.has_value()) {                                                    \
+      return std::nullopt;                                                     \
+    }                                                                          \
+    val.value();                                                               \
   })
 
 // Looks at the next token. IF it is what is expected, consumes the
 // token and returns the token. If it does not match the value,
 // prints an error and returns early.
-#define EXPECT(tokenType)						\
-  ({									\
-    auto peekTok = lexer.peekToken();					\
-    if (!peekTok.has_value()) {						\
-      return std::nullopt;						\
-    }									\
-    auto peekVal = peekTok.value();					\
-    if (peekVal.type != tokenType) {					\
-      std::cout << "Error: expected " << tokenTypeName(tokenType);	\
-      std::cout << ", got " << tokenTypeName(peekVal.type) << " ";	\
-      std::cout << "'" << peekVal.src << "'\n";				\
-      return std::nullopt;						\
-    }									\
-    lexer.nextToken().value();						\
+#define EXPECT(tokenType)                                                      \
+  ({                                                                           \
+    auto peekTok = lexer.peekToken();                                          \
+    if (!peekTok.has_value()) {                                                \
+      return std::nullopt;                                                     \
+    }                                                                          \
+    auto peekVal = peekTok.value();                                            \
+    if (peekVal.type != tokenType) {                                           \
+      std::cout << "Error: expected " << tokenTypeName(tokenType);             \
+      std::cout << ", got " << tokenTypeName(peekVal.type) << " ";             \
+      std::cout << "'" << peekVal.src << "'\n";                                \
+      return std::nullopt;                                                     \
+    }                                                                          \
+    lexer.nextToken().value();                                                 \
   })
 
 std::string operationToString(Operation op) {
@@ -48,28 +48,29 @@ std::string operationToString(Operation op) {
   return "operationToString Unreachable.";
 }
 
-std::ostream& operator<<(std::ostream& os, const Printable& node) {
+std::ostream &operator<<(std::ostream &os, const Printable &node) {
   node.print(os);
   return os;
 }
 
-void StringValue::print(std::ostream& os) const {
+void StringValue::print(std::ostream &os) const {
   os << "StringValue(" << val << ")";
 }
 
-void IntegerValue::print(std::ostream& os) const {
+void IntegerValue::print(std::ostream &os) const {
   os << "IntegerValue(" << val << ")";
 }
 
-void FloatValue::print(std::ostream& os) const {
+void FloatValue::print(std::ostream &os) const {
   os << "FloatValue(" << val << ")";
 }
 
-void BinaryExpression::print(std::ostream& os) const {
-  os << "BinaryExpression(" << *lhs << " " << operationToString(op) << " " << *rhs << ")";
+void BinaryExpression::print(std::ostream &os) const {
+  os << "BinaryExpression(" << *lhs << " " << operationToString(op) << " "
+     << *rhs << ")";
 }
 
-void FunctionCall::print(std::ostream& os) const {
+void FunctionCall::print(std::ostream &os) const {
   os << "FunctionCall(" << name << "(";
   auto curr = arguments;
   int i = 0;
@@ -84,11 +85,11 @@ void FunctionCall::print(std::ostream& os) const {
   os << "))";
 }
 
-void Parameter::print(std::ostream& os) const {
+void Parameter::print(std::ostream &os) const {
   os << "Parameter(" << name << ": " << type << ")";
 }
 
-void FunctionDeclaration::print(std::ostream& os) const {
+void FunctionDeclaration::print(std::ostream &os) const {
   os << "FunctionDeclaration(" << name << "(";
   auto curr = parameters;
   int i = 0;
@@ -100,7 +101,8 @@ void FunctionDeclaration::print(std::ostream& os) const {
   if (returnType.has_value()) {
     os << "-> " << returnType.value();
   } else {
-    os << "-> " << "Void";
+    os << "-> "
+       << "Void";
   }
   os << ") {\n";
   auto currStmt = statements;
@@ -113,7 +115,8 @@ void FunctionDeclaration::print(std::ostream& os) const {
   os << "})";
 }
 
-std::optional<std::tuple<Operation, int, int>> infixBindingPower(TokenType type) {
+std::optional<std::tuple<Operation, int, int>>
+infixBindingPower(TokenType type) {
   Operation op;
   int bpl;
   int bpr;
@@ -121,18 +124,22 @@ std::optional<std::tuple<Operation, int, int>> infixBindingPower(TokenType type)
   switch (type) {
   case TokenType::Plus:
     op = Operation::Add;
-    bpl = 1; bpr = 2;
+    bpl = 1;
+    bpr = 2;
     break;
   case TokenType::Minus:
     op = Operation::Sub;
-    bpl = 1; bpr = 2;
+    bpl = 1;
+    bpr = 2;
     break;
   case TokenType::Star:
     op = Operation::Mul;
-    bpl = 3; bpr = 4;
+    bpl = 3;
+    bpr = 4;
     break;
   case TokenType::Slash:
-    bpl = 3; bpr = 4;
+    bpl = 3;
+    bpr = 4;
     op = Operation::Div;
     break;
 
@@ -146,32 +153,34 @@ std::optional<std::tuple<Operation, int, int>> infixBindingPower(TokenType type)
 std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
   lexer.nextToken(); // Eat '('
 
-  LinkedList<Expression *> * arguments = nullptr;
+  LinkedList<Expression *> *arguments = nullptr;
   auto curr = arguments;
 
   // Collect arguments until we hit closing ')'
   std::optional<Token> token;
-  while ((token = lexer.peekToken()) && token.value().type != TokenType::RParen) {
+  while ((token = lexer.peekToken()) &&
+         token.value().type != TokenType::RParen) {
     std::optional<Expression *> arg = parseExpression();
     if (arg.has_value()) {
       auto next = allocator->allocate(LinkedList<Expression *>());
       next->elem = arg.value();
 
       if (arguments == nullptr) {
-	arguments = next;
-	curr = next;
+        arguments = next;
+        curr = next;
       }
 
       curr->next = next;
       curr = next;
       auto peek = TRY(lexer.peekToken());
       if (peek.type == TokenType::RParen) {
-	break;
+        break;
       } else if (peek.type == TokenType::Comma) {
-	lexer.nextToken();
+        lexer.nextToken();
       } else {
-	std::cout << "Error: expected comma or right parenthesis when parsing function call\n";
-	return std::nullopt;
+        std::cout << "Error: expected comma or right parenthesis when parsing "
+                     "function call\n";
+        return std::nullopt;
       }
     } else {
       std::cout << "Error: expected function argument.\n";
@@ -187,20 +196,23 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
 std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
   auto lhsToken = TRY(lexer.nextToken());
 
-  // We may use this to check for a function call if the lhsToken is a string literal.
+  // We may use this to check for a function call if the lhsToken is a string
+  // literal.
   std::optional<Token> peekLparen;
 
   Expression *lhs;
   switch (lhsToken.type) {
   case TokenType::IntegerLiteral:
     uint64_t lhsIntValue;
-    std::from_chars(lhsToken.src.data(), lhsToken.src.data() + lhsToken.src.size(), lhsIntValue);
+    std::from_chars(lhsToken.src.data(),
+                    lhsToken.src.data() + lhsToken.src.size(), lhsIntValue);
     lhs = allocator->allocate(IntegerValue(lhsIntValue));
     break;
 
   case TokenType::FloatLiteral:
     double lhsFloatValue;
-    std::from_chars(lhsToken.src.data(), lhsToken.src.data() + lhsToken.src.size(), lhsFloatValue);
+    std::from_chars(lhsToken.src.data(),
+                    lhsToken.src.data() + lhsToken.src.size(), lhsFloatValue);
     lhs = allocator->allocate(FloatValue(lhsFloatValue));
     break;
 
@@ -210,11 +222,12 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     peekLparen = lexer.peekToken();
     if (peekLparen.has_value()) {
       if (peekLparen.value().type == TokenType::LParen) {
-	// Parse function.
-	return parseFunctionCall(lhsToken);
+        // Parse function.
+        return parseFunctionCall(lhsToken);
       } else {
-	std::cout << "Error: expected left parenthesis when parsing function call\n";
-	return std::nullopt;
+        std::cout
+            << "Error: expected left parenthesis when parsing function call\n";
+        return std::nullopt;
       }
     }
     break;
@@ -265,7 +278,7 @@ std::optional<Expression *> Parser::parseExpression() {
 
 std::optional<Statement *> Parser::parseStatement() {
   auto lhsToken = TRY(lexer.nextToken());
-  auto fn = (Statement *) parseFunctionCall(lhsToken).value();
+  auto fn = (Statement *)parseFunctionCall(lhsToken).value();
   EXPECT(TokenType::Semicolon);
   return fn;
 }
@@ -276,12 +289,13 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   EXPECT(TokenType::LParen);
 
   // collect parameters
-  LinkedList<Parameter *> * parameters = nullptr;
+  LinkedList<Parameter *> *parameters = nullptr;
   auto curr = parameters;
 
   // Collect parameters until we hit closing ')'
   std::optional<Token> token;
-  while ((token = lexer.peekToken()) && token.value().type != TokenType::RParen) {
+  while ((token = lexer.peekToken()) &&
+         token.value().type != TokenType::RParen) {
     auto p_name = EXPECT(TokenType::Identifier);
     EXPECT(TokenType::Colon);
     auto p_type = EXPECT(TokenType::Identifier);
@@ -302,7 +316,8 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     } else if (peek.type == TokenType::Comma) {
       EXPECT(TokenType::Comma);
     } else {
-      std::cout << "Error: expected comma or right parenthesis when parsing function decl parameters\n";
+      std::cout << "Error: expected comma or right parenthesis when parsing "
+                   "function decl parameters\n";
       return std::nullopt;
     }
   }
@@ -321,10 +336,11 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   EXPECT(TokenType::LCurly);
 
   // collect body
-  LinkedList<Statement *> * body = nullptr;
+  LinkedList<Statement *> *body = nullptr;
   auto currStmt = body;
 
-  while ((token = lexer.peekToken()) && token.value().type != TokenType::RCurly) {
+  while ((token = lexer.peekToken()) &&
+         token.value().type != TokenType::RCurly) {
     auto stmt = TRY(parseStatement());
 
     auto next = allocator->allocate(LinkedList<Statement *>());
@@ -345,5 +361,6 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   currStmt->next = nullptr;
   EXPECT(TokenType::RCurly);
 
-  return allocator->allocate(FunctionDeclaration(name.src, parameters, body, returnType));
+  return allocator->allocate(
+      FunctionDeclaration(name.src, parameters, body, returnType));
 }

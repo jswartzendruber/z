@@ -1,13 +1,13 @@
 #ifndef LEXER_HH
 #define LEXER_HH
 
-#include <string>
-#include <string_view>
+#include <cstdint>
+#include <iostream>
 #include <optional>
 #include <ostream>
-#include <iostream>
+#include <string>
+#include <string_view>
 #include <unordered_map>
-#include <cstdint>
 
 // An ID that represents a string inside the StringTable.
 struct StringId {
@@ -65,10 +65,11 @@ struct Token {
   TokenType type;
   std::string_view src;
 
-  Token(TokenType type, const std::string_view& src): type(type), src(src) {}
+  Token(TokenType type, const std::string_view &src) : type(type), src(src) {}
 
-  friend std::ostream& operator<<(std::ostream& os, const Token& token) {
-    os << "Token { type: " << tokenTypeName(token.type) << ", src: \"" << token.src << "\" }";
+  friend std::ostream &operator<<(std::ostream &os, const Token &token) {
+    os << "Token { type: " << tokenTypeName(token.type) << ", src: \""
+       << token.src << "\" }";
     return os;
   }
 };
@@ -82,7 +83,8 @@ struct LexerInternal {
   std::size_t currentLine;
   StringTable *stringTable;
 
-  LexerInternal(const std::string src, StringTable *stringTable) : src(src), index(0), currentLine(1), stringTable(stringTable) {}
+  LexerInternal(const std::string src, StringTable *stringTable)
+      : src(src), index(0), currentLine(1), stringTable(stringTable) {}
 
   // Advances the index within the source string, and returns the next token.
   // If there are no more tokens, returns none.

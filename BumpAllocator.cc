@@ -2,7 +2,7 @@
 
 uintptr_t BumpAllocator::align_forward(uintptr_t ptr, size_t align) {
   uintptr_t p = ptr;
-  uintptr_t a = (uintptr_t) align;
+  uintptr_t a = (uintptr_t)align;
   // Same as (p % a) but faster as 'a' is a power of two
   uintptr_t modulo = p & (a - 1);
 
@@ -16,10 +16,7 @@ uintptr_t BumpAllocator::align_forward(uintptr_t ptr, size_t align) {
 }
 
 BumpAllocator::BumpAllocator(size_t size) : buf_len(size), curr_offset(0) {
-  buf = (unsigned char *) malloc(size);
+  buf = (unsigned char *)malloc(size);
 }
 
-BumpAllocator::~BumpAllocator() {
-  free(buf);
-}
-
+BumpAllocator::~BumpAllocator() { free(buf); }

@@ -13,42 +13,44 @@ StringId StringTable::intern(std::string_view s) {
   }
 }
 
-bool operator==(const StringId& lhs, const StringId& rhs) {
-    return lhs.id == rhs.id;
+bool operator==(const StringId &lhs, const StringId &rhs) {
+  return lhs.id == rhs.id;
 }
 
 static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
-  {TokenType::LParen, "LParen"},
-  {TokenType::RParen, "RParen"},
-  {TokenType::LCurly, "LCurly"},
-  {TokenType::RCurly, "RCurly"},
-  {TokenType::Eq, "Eq"},
-  {TokenType::Minus, "Minus"},
-  {TokenType::Plus, "Plus"},
-  {TokenType::Star, "Star"},
-  {TokenType::Slash, "Slash"},
-  {TokenType::Semicolon, "Semicolon"},
-  {TokenType::LAngleBracket, "LAngleBracket"},
-  {TokenType::RAngleBracket, "RAngleBracket"},
-  {TokenType::Bang, "Bang"},
-  {TokenType::Comma, "Comma"},
-  {TokenType::Colon, "Colon"},
-  {TokenType::Identifier, "Identifier"},
-  {TokenType::IntegerLiteral, "IntegerLiteral"},
-  {TokenType::StringLiteral, "StringLiteral"},
-  {TokenType::FloatLiteral, "FloatLiteral"},
-  {TokenType::IfKeyword, "IfKeyword"},
-  {TokenType::ElseKeyword, "ElseKeyword"},
-  {TokenType::WhileKeyword, "WhileKeyword"},
-  {TokenType::ForKeyword, "ForKeyword"},
-  {TokenType::MatchKeyword, "MatchKeyword"},
-  {TokenType::FnKeyword, "FnKeyword"},
-  {TokenType::TrueKeyword, "TrueKeyword"},
-  {TokenType::FalseKeyword, "FalseKeyword"},
+    {TokenType::LParen, "LParen"},
+    {TokenType::RParen, "RParen"},
+    {TokenType::LCurly, "LCurly"},
+    {TokenType::RCurly, "RCurly"},
+    {TokenType::Eq, "Eq"},
+    {TokenType::Minus, "Minus"},
+    {TokenType::Plus, "Plus"},
+    {TokenType::Star, "Star"},
+    {TokenType::Slash, "Slash"},
+    {TokenType::Semicolon, "Semicolon"},
+    {TokenType::LAngleBracket, "LAngleBracket"},
+    {TokenType::RAngleBracket, "RAngleBracket"},
+    {TokenType::Bang, "Bang"},
+    {TokenType::Comma, "Comma"},
+    {TokenType::Colon, "Colon"},
+    {TokenType::Identifier, "Identifier"},
+    {TokenType::IntegerLiteral, "IntegerLiteral"},
+    {TokenType::StringLiteral, "StringLiteral"},
+    {TokenType::FloatLiteral, "FloatLiteral"},
+    {TokenType::IfKeyword, "IfKeyword"},
+    {TokenType::ElseKeyword, "ElseKeyword"},
+    {TokenType::WhileKeyword, "WhileKeyword"},
+    {TokenType::ForKeyword, "ForKeyword"},
+    {TokenType::MatchKeyword, "MatchKeyword"},
+    {TokenType::FnKeyword, "FnKeyword"},
+    {TokenType::TrueKeyword, "TrueKeyword"},
+    {TokenType::FalseKeyword, "FalseKeyword"},
 };
 
 std::string tokenTypeName(TokenType type) {
-  assert(tokenTypeNames.size() - 1 == static_cast<std::size_t>(TokenType::FalseKeyword) && "Token names table is out of sync.");
+  assert(tokenTypeNames.size() - 1 ==
+             static_cast<std::size_t>(TokenType::FalseKeyword) &&
+         "Token names table is out of sync.");
 
   auto it = tokenTypeNames.find(type);
   if (it != tokenTypeNames.end()) {
@@ -69,7 +71,8 @@ Token LexerInternal::makeToken(TokenType type, std::string_view str) {
 }
 
 bool isAlphanumeric(char c) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+         (c >= '0' && c <= '9');
 }
 
 Token LexerInternal::makeIdentifierOrBoolean() {
@@ -96,7 +99,7 @@ Token LexerInternal::makeIdentifierOrBoolean() {
     return makeToken(TokenType::TrueKeyword, str);
   } else if (strId == falseStr) {
     return makeToken(TokenType::FalseKeyword, str);
-  } else  if (strId == fnStr) {
+  } else if (strId == fnStr) {
     return makeToken(TokenType::FnKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
@@ -104,7 +107,8 @@ Token LexerInternal::makeIdentifierOrBoolean() {
 }
 
 std::optional<Token> LexerInternal::handleWhitespace() {
-  index++; // Consume the whitespace character that caused us to enter this function
+  index++; // Consume the whitespace character that caused us to enter this
+           // function
 
   while (index < src.length()) {
     switch (src[index]) {
@@ -114,7 +118,8 @@ std::optional<Token> LexerInternal::handleWhitespace() {
     case ' ':
     case '\t':
     case '\r':
-      index++; break;
+      index++;
+      break;
     default:
       return nextToken();
     }
@@ -129,30 +134,39 @@ Token LexerInternal::makeNumber() {
 
   while (index + len < src.length()) {
     switch (src[index + len]) {
-    case '0': case '1':
-    case '2': case '3':
-    case '4': case '5':
-    case '6': case '7':
-    case '8': case '9':
-      len++; break;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      len++;
+      break;
 
     case '.':
       if (floating) {
-	// This is already a floating point number. Stop parsing and return what we have up to this point.
-	return makeToken(TokenType::FloatLiteral, len);
+        // This is already a floating point number. Stop parsing and return what
+        // we have up to this point.
+        return makeToken(TokenType::FloatLiteral, len);
       } else {
-	floating = true;
-	len++;
-	break;
+        floating = true;
+        len++;
+        break;
       }
 
       // Ran out of number tokens, bail.
-    default: goto end;
+    default:
+      goto end;
     }
   }
 
- end:
-  return makeToken((floating) ? TokenType::FloatLiteral : TokenType::IntegerLiteral, len);
+end:
+  return makeToken(
+      (floating) ? TokenType::FloatLiteral : TokenType::IntegerLiteral, len);
 }
 
 Token LexerInternal::makeString() {
@@ -175,7 +189,7 @@ std::optional<Token> LexerInternal::nextToken() {
   if (index >= src.length()) {
     return std::nullopt;
   }
-  
+
   switch (src[index]) {
   case '\n':
     currentLine++;
@@ -185,70 +199,116 @@ std::optional<Token> LexerInternal::nextToken() {
   case '\r':
     return handleWhitespace();
 
-  case '(': return makeToken(TokenType::LParen, 1);
-  case ')': return makeToken(TokenType::RParen, 1);
-  case '{': return makeToken(TokenType::LCurly, 1);
-  case '}': return makeToken(TokenType::RCurly, 1);
-  case '=': return makeToken(TokenType::Eq, 1);
-  case '-': return makeToken(TokenType::Minus, 1);
-  case '+': return makeToken(TokenType::Plus, 1);
-  case '*': return makeToken(TokenType::Star, 1);
-  case '/': return makeToken(TokenType::Slash, 1);
-  case ';': return makeToken(TokenType::Semicolon, 1);
-  case '>': return makeToken(TokenType::LAngleBracket, 1);
-  case '<': return makeToken(TokenType::RAngleBracket, 1);
-  case '!': return makeToken(TokenType::Bang, 1);
-  case ',': return makeToken(TokenType::Comma, 1);
-  case ':': return makeToken(TokenType::Colon, 1);
+  case '(':
+    return makeToken(TokenType::LParen, 1);
+  case ')':
+    return makeToken(TokenType::RParen, 1);
+  case '{':
+    return makeToken(TokenType::LCurly, 1);
+  case '}':
+    return makeToken(TokenType::RCurly, 1);
+  case '=':
+    return makeToken(TokenType::Eq, 1);
+  case '-':
+    return makeToken(TokenType::Minus, 1);
+  case '+':
+    return makeToken(TokenType::Plus, 1);
+  case '*':
+    return makeToken(TokenType::Star, 1);
+  case '/':
+    return makeToken(TokenType::Slash, 1);
+  case ';':
+    return makeToken(TokenType::Semicolon, 1);
+  case '>':
+    return makeToken(TokenType::LAngleBracket, 1);
+  case '<':
+    return makeToken(TokenType::RAngleBracket, 1);
+  case '!':
+    return makeToken(TokenType::Bang, 1);
+  case ',':
+    return makeToken(TokenType::Comma, 1);
+  case ':':
+    return makeToken(TokenType::Colon, 1);
 
   case '"':
     return makeString();
 
-  case '0': case '1':
-  case '2': case '3':
-  case '4': case '5':
-  case '6': case '7':
-  case '8': case '9':
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
     return makeNumber();
 
-  case 'a': case 'A':
-  case 'b': case 'B':
-  case 'c': case 'C':
-  case 'd': case 'D':
-  case 'e': case 'E':
-  case 'f': case 'F':
-  case 'g': case 'G':
-  case 'h': case 'H':
-  case 'i': case 'I':
-  case 'j': case 'J':
-  case 'k': case 'K':
-  case 'l': case 'L':
-  case 'm': case 'M':
-  case 'n': case 'N':
-  case 'o': case 'O':
-  case 'p': case 'P':
-  case 'q': case 'Q':
-  case 'r': case 'R':
-  case 's': case 'S':
-  case 't': case 'T':
-  case 'u': case 'U':
-  case 'v': case 'V':
-  case 'w': case 'W':
-  case 'x': case 'X':
-  case 'y': case 'Y':
-  case 'z': case 'Z':
+  case 'a':
+  case 'A':
+  case 'b':
+  case 'B':
+  case 'c':
+  case 'C':
+  case 'd':
+  case 'D':
+  case 'e':
+  case 'E':
+  case 'f':
+  case 'F':
+  case 'g':
+  case 'G':
+  case 'h':
+  case 'H':
+  case 'i':
+  case 'I':
+  case 'j':
+  case 'J':
+  case 'k':
+  case 'K':
+  case 'l':
+  case 'L':
+  case 'm':
+  case 'M':
+  case 'n':
+  case 'N':
+  case 'o':
+  case 'O':
+  case 'p':
+  case 'P':
+  case 'q':
+  case 'Q':
+  case 'r':
+  case 'R':
+  case 's':
+  case 'S':
+  case 't':
+  case 'T':
+  case 'u':
+  case 'U':
+  case 'v':
+  case 'V':
+  case 'w':
+  case 'W':
+  case 'x':
+  case 'X':
+  case 'y':
+  case 'Y':
+  case 'z':
+  case 'Z':
     return makeIdentifierOrBoolean();
 
   default:
     return std::nullopt;
-
   };
 
   std::cout << "LexerInternal::nextToken Unreachable.\n";
   exit(1);
 }
 
-Lexer::Lexer(std::string code, StringTable *stringTable) : lexerInternal(code, stringTable) {
+Lexer::Lexer(std::string code, StringTable *stringTable)
+    : lexerInternal(code, stringTable) {
   current = lexerInternal.nextToken();
   next = lexerInternal.nextToken();
 }
@@ -260,10 +320,6 @@ std::optional<Token> Lexer::nextToken() {
   return res;
 }
 
-std::optional<Token> Lexer::peekToken() {
-  return current;
-}
+std::optional<Token> Lexer::peekToken() { return current; }
 
-size_t Lexer::currentLine() {
-  return lexerInternal.currentLine;
-}
+size_t Lexer::currentLine() { return lexerInternal.currentLine; }

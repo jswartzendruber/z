@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 
-std::optional<std::string> readFile(const std::string& filename) {
+std::optional<std::string> readFile(const std::string &filename) {
   std::ifstream file(filename, std::ios::binary);
   if (!file.is_open()) {
     std::cerr << "Error: Could not open file " << filename << "\n";
@@ -16,7 +16,7 @@ std::optional<std::string> readFile(const std::string& filename) {
   return res;
 }
 
-int main (int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 2) {
     std::cerr << "Error: expected file path as argument\n";
     return 1;
@@ -33,12 +33,13 @@ int main (int argc, char** argv) {
       auto parser = Parser(&allocator, lexer);
       auto fn = parser.parseFunctionDeclaration();
       if (fn.has_value()) {
-	std::cout << *fn.value() << "\n";
+        std::cout << *fn.value() << "\n";
       } else {
-	std::cout << "no value.\n";
+        std::cout << "no value.\n";
       }
     } catch (UnclosedDelimiter _) {
-      std::cerr << "Error: Unclosed delimeter beginning at line " << lexer.currentLine() << "\n";
+      std::cerr << "Error: Unclosed delimeter beginning at line "
+                << lexer.currentLine() << "\n";
       return 1;
     }
   }
