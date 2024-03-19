@@ -4,6 +4,14 @@
 #include "Lexer.hh"
 #include "BumpAllocator.hh"
 
+class Printable {
+public:
+  virtual void print(std::ostream& os) const = 0;
+  friend std::ostream& operator<<(std::ostream& os, const Printable& node);
+
+  Printable() {}
+};
+
 template <typename T>
 struct LinkedList {
   T elem;
@@ -19,7 +27,17 @@ enum class Operation {
   Div,
 };
 
-class Expression {
+
+class Statement : public Printable {
+public:
+  enum class Type {
+    FunctionCall,
+  } type;
+
+  Statement(Statement::Type type) : type(type) {}
+};
+
+class Expression : public Printable {
 public:
   enum class Type {
     IntegerValue,
@@ -30,8 +48,6 @@ public:
   } type;
 
   Expression(Expression::Type type) : type(type) {}
-  virtual void print(std::ostream& os) const = 0;
-  friend std::ostream& operator<<(std::ostream& os, const Expression& node);
 };
 
 class StringValue : public Expression {
@@ -69,24 +85,33 @@ public:
   virtual ~BinaryExpression() = default;
 };
 
-class FunctionCall : public Expression {
-public:
+class FunctionCall : public Expression, public Statement {
   std::string_view name;
   LinkedList<Expression *> *arguments;
 
-  FunctionCall(std::string_view name, LinkedList<Expression *> *arguments) : Expression(Expression::Type::FunctionCall), name(name), arguments(arguments) {}
+public:
+  FunctionCall(std::string_view name, LinkedList<Expression *> *arguments) : Expression(Expression::Type::FunctionCall), Statement(Statement::Type::FunctionCall), name(name), arguments(arguments) {}
   void print(std::ostream& os) const;
 };
 
-class Statement {
+struct Parameter : public Printable {
 public:
-  enum class Type {
-    FunctionCall,
-  } type;
+  std::string_view name;
+  std::string_view type;
 
-  Statement(Statement::Type type) : type(type) {}
-  virtual void print(std::ostream& os) const = 0;
-  friend std::ostream& operator<<(std::ostream& os, const Statement& node);
+  Parameter(std::string_view name, std::string_view type) : name(name), type(type) {}
+  void print(std::ostream& os) const;
+};
+
+class FunctionDeclaration : public Printable {
+public:
+  std::string_view name;
+  LinkedList<Parameter *> *parameters;
+  LinkedList<Statement *> *statements;
+  std::optional<std::string_view> returnType;
+
+  FunctionDeclaration(std::string_view name, LinkedList<Parameter *> *parameters, LinkedList<Statement *> *statements, std::optional<std::string_view> returnType) : name(name), parameters(parameters), statements(statements), returnType(returnType) {}
+  void print(std::ostream& os) const;
 };
 
 struct Parser {
@@ -94,11 +119,14 @@ private:
   BumpAllocator *allocator;
   Lexer lexer;
 
+  std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
   std::optional<Expression *> parseExpressionBp(int minbp);
+  std::optional<Expression *> parseExpression();
+  std::optional<Statement *> parseStatement();
 
 public:
   Parser(BumpAllocator *allocator, Lexer lexer) : allocator(allocator), lexer(lexer) {}
-  std::optional<Expression *> parseExpression();
+  std::optional<FunctionDeclaration *> parseFunctionDeclaration();
 };
 
 #endif

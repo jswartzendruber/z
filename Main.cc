@@ -31,9 +31,9 @@ int main (int argc, char** argv) {
     try {
       auto allocator = BumpAllocator(1024 * 1024);
       auto parser = Parser(&allocator, lexer);
-      auto ex = parser.parseExpression();
-      if (ex.has_value()) {
-	std::cout << *ex.value() << "\n";
+      auto fn = parser.parseFunctionDeclaration();
+      if (fn.has_value()) {
+	std::cout << *fn.value() << "\n";
       } else {
 	std::cout << "no value.\n";
       }
