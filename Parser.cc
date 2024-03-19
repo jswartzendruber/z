@@ -15,6 +15,25 @@
     val.value();				\
   })
 
+// Looks at the next token. IF it is what is expected, consumes the
+// token and returns the token. If it does not match the value,
+// prints an error and returns early.
+#define EXPECT(tokenType)						\
+  ({									\
+    auto peekTok = lexer.peekToken();					\
+    if (!peekTok.has_value()) {						\
+      return std::nullopt;						\
+    }									\
+    auto peekVal = peekTok.value();					\
+    if (peekVal.type != tokenType) {					\
+      std::cout << "Error: expected " << tokenTypeName(tokenType);	\
+      std::cout << ", got " << tokenTypeName(peekVal.type) << " ";	\
+      std::cout << "'" << peekVal.src << "'\n";				\
+      return std::nullopt;						\
+    }									\
+    lexer.nextToken().value();						\
+  })
+
 std::string operationToString(Operation op) {
   switch (op) {
   case Operation::Add:
@@ -160,7 +179,7 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
     }
   }
   curr->next = nullptr;
-  lexer.nextToken(); // Consume ')'
+  EXPECT(TokenType::RParen);
 
   return allocator->allocate(FunctionCall(lhsToken.src, arguments));
 }
@@ -247,26 +266,14 @@ std::optional<Expression *> Parser::parseExpression() {
 std::optional<Statement *> Parser::parseStatement() {
   auto lhsToken = TRY(lexer.nextToken());
   auto fn = (Statement *) parseFunctionCall(lhsToken).value();
-  lexer.nextToken(); // semicolon
+  EXPECT(TokenType::Semicolon);
   return fn;
 }
 
 std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
-  if (TRY(lexer.nextToken()).type != TokenType::Identifier) {
-    std::cout << "Error: fn keyword name\n";
-    return std::nullopt;
-  }
-
-  auto name = TRY(lexer.nextToken());
-  if (name.type != TokenType::Identifier) {
-    std::cout << "Error: expected function name\n";
-    return std::nullopt;
-  }
-  
-  if (TRY(lexer.nextToken()).type != TokenType::LParen) {
-    std::cout << "Error: expected left paren in function decl\n";
-    return std::nullopt;
-  }
+  EXPECT(TokenType::FnKeyword);
+  auto name = EXPECT(TokenType::Identifier);
+  EXPECT(TokenType::LParen);
 
   // collect parameters
   LinkedList<Parameter *> * parameters = nullptr;
@@ -275,12 +282,9 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   // Collect parameters until we hit closing ')'
   std::optional<Token> token;
   while ((token = lexer.peekToken()) && token.value().type != TokenType::RParen) {
-    auto p_name = TRY(lexer.nextToken());
-    if (TRY(lexer.nextToken()).type != TokenType::Colon) {
-      std::cout << "Error: expected colon in parameter\n";
-      return std::nullopt;
-    }
-    auto p_type = TRY(lexer.nextToken());
+    auto p_name = EXPECT(TokenType::Identifier);
+    EXPECT(TokenType::Colon);
+    auto p_type = EXPECT(TokenType::Identifier);
 
     auto next = allocator->allocate(LinkedList<Parameter *>());
     next->elem = allocator->allocate(Parameter(p_name.src, p_type.src));
@@ -296,25 +300,25 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     if (peek.type == TokenType::RParen) {
       break;
     } else if (peek.type == TokenType::Comma) {
-      lexer.nextToken();
+      EXPECT(TokenType::Comma);
     } else {
       std::cout << "Error: expected comma or right parenthesis when parsing function decl parameters\n";
       return std::nullopt;
     }
   }
   curr->next = nullptr;
-  lexer.nextToken(); // Consume ')'
+  EXPECT(TokenType::RParen);
 
   // return type
   std::optional<std::string_view> returnType = std::nullopt;
   if (TRY(lexer.peekToken()).type == TokenType::Minus) {
-    lexer.nextToken();
-    TRY(lexer.nextToken()); // '>'
-    auto ty = TRY(lexer.nextToken());
+    EXPECT(TokenType::Minus);
+    EXPECT(TokenType::LAngleBracket);
+    auto ty = EXPECT(TokenType::Identifier);
     returnType = ty.src;
   }
 
-  lexer.nextToken(); // Consume '{'
+  EXPECT(TokenType::LCurly);
 
   // collect body
   LinkedList<Statement *> * body = nullptr;
@@ -339,7 +343,7 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     }
   }
   currStmt->next = nullptr;
-  lexer.nextToken(); // Consume '}'
+  EXPECT(TokenType::RCurly);
 
   return allocator->allocate(FunctionDeclaration(name.src, parameters, body, returnType));
 }

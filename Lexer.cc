@@ -42,6 +42,7 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
   {TokenType::WhileKeyword, "WhileKeyword"},
   {TokenType::ForKeyword, "ForKeyword"},
   {TokenType::MatchKeyword, "MatchKeyword"},
+  {TokenType::FnKeyword, "FnKeyword"},
   {TokenType::TrueKeyword, "TrueKeyword"},
   {TokenType::FalseKeyword, "FalseKeyword"},
 };
@@ -89,11 +90,14 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   // are not repeatedly interned.
   static const StringId trueStr = stringTable->intern("true");
   static const StringId falseStr = stringTable->intern("false");
+  static const StringId fnStr = stringTable->intern("fn");
 
   if (strId == trueStr) {
     return makeToken(TokenType::TrueKeyword, str);
   } else if (strId == falseStr) {
     return makeToken(TokenType::FalseKeyword, str);
+  } else  if (strId == fnStr) {
+    return makeToken(TokenType::FnKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
   }

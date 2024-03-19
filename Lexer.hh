@@ -52,6 +52,7 @@ enum class TokenType {
   WhileKeyword,
   ForKeyword,
   MatchKeyword,
+  FnKeyword,
   TrueKeyword,
   FalseKeyword,
 };
