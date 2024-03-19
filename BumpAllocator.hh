@@ -1,57 +1,54 @@
 #ifndef BUMPALLOCATOR_HH
 #define BUMPALLOCATOR_HH
 
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
-class BumpAllocator {
+template <size_t slabSize = 4096> class BumpAllocator {
 private:
-  unsigned char *buf;
-  size_t buf_len;
-  size_t curr_offset;
+  std::vector<void *> slabs;
+  size_t leftInCurrentSlab;
+  void *currPtr;
 
-  uintptr_t align_forward(uintptr_t ptr, size_t align);
+  void allocateSlab() {
+    int slabIdx = slabs.size();
+    slabs.push_back(malloc(slabSize));
+    leftInCurrentSlab = slabSize;
+    currPtr = slabs[slabIdx];
+  }
 
   // Allocate sizeof(Type) bytes and return the pointer
-  template <class Type> Type *allocateInternal(size_t size) {
-    size_t align = 8;
-
-    // Align 'curr_offset' forward to the specified alignment
-    uintptr_t curr_ptr = (uintptr_t)buf + (uintptr_t)curr_offset;
-    uintptr_t offset = align_forward(curr_ptr, align);
-    offset -= (uintptr_t)buf; // Change to relative offset
-
-    // Check to see if the backing memory has space left
-    if (offset + size <= buf_len) {
-      void *ptr = &buf[offset];
-      curr_offset = offset + size;
-
-      // Zero new memory by default
-      memset(ptr, 0, size);
-      return (Type *)ptr;
+  template <class T> T *allocateInternal(size_t size) {
+    if (size > leftInCurrentSlab) {
+      allocateSlab();
     }
 
-    // Return NULL if the arena is out of memory (or handle differently)
-    return NULL;
+    void *ptr = currPtr;
+    currPtr = (char *)currPtr + size;
+    leftInCurrentSlab -= size;
+
+    // Zero new memory by default
+    memset(ptr, 0, size);
+    return (T *)ptr;
   }
 
 public:
-  BumpAllocator() = delete;
-  BumpAllocator(size_t size);
   BumpAllocator &operator=(const BumpAllocator &) = delete;
   BumpAllocator(BumpAllocator &&) = delete;
   BumpAllocator &operator=(BumpAllocator &&) = delete;
-  ~BumpAllocator();
+
+  BumpAllocator() : slabs() { allocateSlab(); }
+
+  ~BumpAllocator() {
+    for (auto slab : slabs) {
+      free(slab);
+    }
+  }
 
   // Reserve space for t and save it in the allocator
   template <class T> T *allocate(T t) {
-    size_t size = sizeof(T);
-    return new (allocateInternal<T>(size)) T{t};
-  }
-
-  template <class T> T *allocateBytes(int bytes) {
-    return allocateInternal<T>(bytes);
+    return new (allocateInternal<T>(sizeof(T))) T{t};
   }
 };
 

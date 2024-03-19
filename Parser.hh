@@ -127,7 +127,7 @@ public:
 
 struct Parser {
 private:
-  BumpAllocator *allocator;
+  BumpAllocator<> *allocator;
   Lexer lexer;
 
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
@@ -136,7 +136,7 @@ private:
   std::optional<Statement *> parseStatement();
 
 public:
-  Parser(BumpAllocator *allocator, Lexer lexer)
+  Parser(BumpAllocator<> *allocator, Lexer lexer)
       : allocator(allocator), lexer(lexer) {}
   std::optional<FunctionDeclaration *> parseFunctionDeclaration();
 };

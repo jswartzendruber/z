@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     auto lexer = Lexer(code, &stringTable);
 
     try {
-      auto allocator = BumpAllocator(1024 * 1024);
+      auto allocator = BumpAllocator();
       auto parser = Parser(&allocator, lexer);
       auto fn = parser.parseFunctionDeclaration();
       if (fn.has_value()) {
