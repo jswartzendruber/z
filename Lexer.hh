@@ -41,6 +41,7 @@ enum class TokenType {
   LAngleBracket,
   RAngleBracket,
   Bang,
+  Comma,
   Identifier,
   IntegerLiteral,
   StringLiteral,

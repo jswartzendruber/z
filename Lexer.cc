@@ -31,6 +31,7 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
   {TokenType::LAngleBracket, "LAngleBracket"},
   {TokenType::RAngleBracket, "RAngleBracket"},
   {TokenType::Bang, "Bang"},
+  {TokenType::Comma, "Comma"},
   {TokenType::Identifier, "Identifier"},
   {TokenType::IntegerLiteral, "IntegerLiteral"},
   {TokenType::StringLiteral, "StringLiteral"},
@@ -192,6 +193,7 @@ std::optional<Token> LexerInternal::nextToken() {
   case '>': return makeToken(TokenType::LAngleBracket, 1);
   case '<': return makeToken(TokenType::RAngleBracket, 1);
   case '!': return makeToken(TokenType::Bang, 1);
+  case ',': return makeToken(TokenType::Comma, 1);
 
   case '"':
     return makeString();

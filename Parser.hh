@@ -5,36 +5,11 @@
 #include "BumpAllocator.hh"
 
 template <typename T>
-class TinyVector {
-private:
-  int size;
-  int capacity;
-  T* data;
+struct LinkedList {
+  T elem;
+  LinkedList<T>* next;
 
-public:
-  TinyVector(int capacity, BumpAllocator *allocator) : size(0), capacity(capacity), data(allocator->allocateBytes<T>(capacity * sizeof(T))) {}
-
-  void push(const T& val) {
-    // TODO: do better
-    if (size < capacity) {
-      data[size] = val;
-      size++;
-    } else {
-      std::cout << "TinyVector full!\n";
-    }
-  }
-
-  int len() const {
-    return size;
-  }
-  
-  T& operator[](std::size_t index) {
-    return data[index];
-  }
-
-  const T& operator[](std::size_t index) const {
-    return data[index];
-  }
+  LinkedList() : elem(0), next(nullptr) {}
 };
 
 enum class Operation {
@@ -97,9 +72,9 @@ public:
 class FunctionCall : public Expression {
 public:
   std::string_view name;
-  TinyVector<Expression *> arguments;
+  LinkedList<Expression *> *arguments;
 
-  FunctionCall(std::string_view name, TinyVector<Expression *> arguments) : Expression(Expression::Type::FunctionCall), name(name), arguments(arguments) {}
+  FunctionCall(std::string_view name, LinkedList<Expression *> *arguments) : Expression(Expression::Type::FunctionCall), name(name), arguments(arguments) {}
   void print(std::ostream& os) const;
 };
 

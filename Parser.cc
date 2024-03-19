@@ -52,11 +52,15 @@ void BinaryExpression::print(std::ostream& os) const {
 
 void FunctionCall::print(std::ostream& os) const {
   os << "FunctionCall(" << name << "(";
-  for (int i = 0; i < arguments.len(); i++) {
+  auto curr = arguments;
+  int i = 0;
+  while (curr != nullptr) {
     if (i > 0) {
       os << " ";
     }
-    os << *arguments[i];
+    os << *curr->elem;
+    i++;
+    curr = curr->next;
   }
   os << "))";
 }
@@ -120,24 +124,44 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
 	// Parse function.
 	lexer.nextToken(); // Eat '('
 
-	std::vector<Expression *> arguments = {};
+	LinkedList<Expression *> * arguments = nullptr;
+	auto curr = arguments;
 
 	// Collect arguments until we hit closing ')'
 	std::optional<Token> token;
 	while ((token = lexer.peekToken()) && token.value().type != TokenType::RParen) {
 	  std::optional<Expression *> arg = parseExpression();
 	  if (arg.has_value()) {
-	    arguments.push_back(arg.value());
+	    auto next = allocator->allocate(LinkedList<Expression *>());
+	    next->elem = arg.value();
+
+	    if (arguments == nullptr) {
+	      arguments = next;
+	      curr = next;
+	    }
+
+	    curr->next = next;
+	    curr = next;
+	    auto peek = TRY(lexer.peekToken());
+	    if (peek.type == TokenType::RParen) {
+	      break;
+	    } else if (peek.type == TokenType::Comma) {
+	      lexer.nextToken();
+	    } else {
+	      std::cout << "Error: expected comma or right parenthesis when parsing function call\n";
+	      return std::nullopt;
+	    }
 	  } else {
 	    std::cout << "Error: expected function argument.\n";
+	    return std::nullopt;
 	  }
 	}
+	lexer.nextToken(); // Consume ')'
 
-	auto args = TinyVector<Expression *>(arguments.size(), allocator);
-	for (auto arg : arguments) {
-	  args.push(arg);
-	}
-	return allocator->allocate(FunctionCall(lhsToken.src, args));
+	return allocator->allocate(FunctionCall(lhsToken.src, arguments));
+      } else {
+	std::cout << "Error: expected left parenthesis when parsing function call\n";
+	return std::nullopt;
       }
     }
     break;
@@ -147,7 +171,7 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     break;
 
   default:
-    std::cerr << "Error: Expression, got " << lhsToken << "\n";
+    std::cerr << "Error: expected expression, got " << lhsToken << "\n";
     return std::nullopt;
   }
 
