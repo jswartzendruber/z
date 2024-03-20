@@ -1,13 +1,22 @@
 #ifndef LEXER_HH
 #define LEXER_HH
 
+#include "ErrorReporter.hh"
 #include <cstdint>
 #include <iostream>
 #include <optional>
 #include <ostream>
-#include <string>
 #include <string_view>
 #include <unordered_map>
+
+#define UNREACHABLE()                                                          \
+                                                                               \
+  std::cerr << "Unreachable tripped: ";                                        \
+  std::cerr << __FILE__ << ":";                                                \
+  std::cerr << __LINE__ << "\n";                                               \
+  exit(1);
+
+void reportError(std::string message);
 
 // An ID that represents a string inside the StringTable.
 struct StringId {
@@ -64,8 +73,10 @@ std::string tokenTypeName(TokenType type);
 struct Token {
   TokenType type;
   std::string_view src;
+  int srcLine;
 
-  Token(TokenType type, const std::string_view &src) : type(type), src(src) {}
+  Token(TokenType type, const std::string_view &src, int srcLine)
+      : type(type), src(src), srcLine(srcLine) {}
 
   friend std::ostream &operator<<(std::ostream &os, const Token &token) {
     os << "Token { type: " << tokenTypeName(token.type) << ", src: \""
@@ -74,17 +85,24 @@ struct Token {
   }
 };
 
-struct UnclosedDelimiter {};
+struct UnclosedDelimiter {
+  int line;
+
+  UnclosedDelimiter(int line) : line(line) {}
+};
 
 // Keeps track of what we have lexed so far.
 struct LexerInternal {
   const std::string src;
-  std::size_t index;
-  std::size_t currentLine;
+  unsigned long index;
+  unsigned long currentLine;
   StringTable *stringTable;
+  ErrorReporter *errorReporter;
 
-  LexerInternal(const std::string src, StringTable *stringTable)
-      : src(src), index(0), currentLine(1), stringTable(stringTable) {}
+  LexerInternal(const std::string src, StringTable *stringTable,
+                ErrorReporter *errorReporter)
+      : src(src), index(0), currentLine(1), stringTable(stringTable),
+        errorReporter(errorReporter) {}
 
   // Advances the index within the source string, and returns the next token.
   // If there are no more tokens, returns none.
@@ -113,9 +131,11 @@ private:
   LexerInternal lexerInternal;
   std::optional<Token> current;
   std::optional<Token> next;
+  ErrorReporter *errorReporter;
 
 public:
-  Lexer(std::string code, StringTable *stringTable);
+  Lexer(std::string code, StringTable *stringTable,
+        ErrorReporter *errorReporter);
 
   // Returns the next token and consumes it.
   std::optional<Token> nextToken();

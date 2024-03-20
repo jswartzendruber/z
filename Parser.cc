@@ -1,7 +1,7 @@
 #include "Parser.hh"
 #include "Lexer.hh"
 #include <charconv>
-#include <vector>
+#include <sstream>
 
 // Acts like the rust '?' operator. Returns early from the function
 // if the optional is none, otherwise assigns the optional to 'name'
@@ -45,7 +45,8 @@ std::string operationToString(Operation op) {
   case Operation::Div:
     return "/";
   }
-  return "operationToString Unreachable.";
+
+  UNREACHABLE();
 }
 
 std::ostream &operator<<(std::ostream &os, const Printable &node) {
@@ -151,7 +152,7 @@ infixBindingPower(TokenType type) {
 }
 
 std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
-  lexer.nextToken(); // Eat '('
+  EXPECT(TokenType::LParen);
 
   LinkedList<Expression *> *arguments = nullptr;
   auto curr = arguments;
@@ -176,14 +177,16 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
       if (peek.type == TokenType::RParen) {
         break;
       } else if (peek.type == TokenType::Comma) {
-        lexer.nextToken();
+        EXPECT(TokenType::Comma);
       } else {
-        std::cout << "Error: expected comma or right parenthesis when parsing "
-                     "function call\n";
+        std::stringstream ss;
+        ss << "expected ',' or ')' when parsing function call, got: ";
+        ss << "'" << peek.src << "'";
+        errorReporter->report(ss.str(), peek.srcLine);
         return std::nullopt;
       }
     } else {
-      std::cout << "Error: expected function argument.\n";
+      errorReporter->report("expected function argument");
       return std::nullopt;
     }
   }
@@ -225,8 +228,10 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
         // Parse function.
         return parseFunctionCall(lhsToken);
       } else {
-        std::cout
-            << "Error: expected left parenthesis when parsing function call\n";
+        std::stringstream ss;
+        ss << "expected '(' when parsing function call, got: ";
+        ss << "'" << peekLparen.value().src << "'";
+        errorReporter->report(ss.str(), peekLparen.value().srcLine);
         return std::nullopt;
       }
     }
@@ -237,7 +242,10 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     break;
 
   default:
-    std::cerr << "Error: expected expression, got " << lhsToken << "\n";
+    std::stringstream ss;
+    ss << "expected expression, got: ";
+    ss << "'" << lhsToken.src << "'";
+    errorReporter->report(ss.str(), lhsToken.srcLine);
     return std::nullopt;
   }
 
@@ -278,7 +286,7 @@ std::optional<Expression *> Parser::parseExpression() {
 
 std::optional<Statement *> Parser::parseStatement() {
   auto lhsToken = TRY(lexer.nextToken());
-  auto fn = (Statement *)parseFunctionCall(lhsToken).value();
+  auto fn = (Statement *)TRY(parseFunctionCall(lhsToken));
   EXPECT(TokenType::Semicolon);
   return fn;
 }
@@ -316,8 +324,11 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     } else if (peek.type == TokenType::Comma) {
       EXPECT(TokenType::Comma);
     } else {
-      std::cout << "Error: expected comma or right parenthesis when parsing "
-                   "function decl parameters\n";
+      std::stringstream ss;
+      ss << "expected ',' or ')' when parsing function declaration parameters, "
+            "got: ";
+      ss << "'" << peek.src << "'";
+      errorReporter->report(ss.str(), peek.srcLine);
       return std::nullopt;
     }
   }

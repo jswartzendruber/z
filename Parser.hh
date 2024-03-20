@@ -2,6 +2,7 @@
 #define PARSER_HH
 
 #include "BumpAllocator.hh"
+#include "ErrorReporter.hh"
 #include "Lexer.hh"
 
 class Printable {
@@ -129,6 +130,7 @@ struct Parser {
 private:
   BumpAllocator<> *allocator;
   Lexer lexer;
+  ErrorReporter *errorReporter;
 
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
   std::optional<Expression *> parseExpressionBp(int minbp);
@@ -136,8 +138,8 @@ private:
   std::optional<Statement *> parseStatement();
 
 public:
-  Parser(BumpAllocator<> *allocator, Lexer lexer)
-      : allocator(allocator), lexer(lexer) {}
+  Parser(BumpAllocator<> *allocator, Lexer lexer, ErrorReporter *errorReporter)
+      : allocator(allocator), lexer(lexer), errorReporter(errorReporter) {}
   std::optional<FunctionDeclaration *> parseFunctionDeclaration();
 };
 

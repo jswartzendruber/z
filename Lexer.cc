@@ -57,17 +57,18 @@ std::string tokenTypeName(TokenType type) {
     return it->second;
   }
 
-  return "Unknown";
+  UNREACHABLE();
 }
 
 Token LexerInternal::makeToken(TokenType type, std::size_t tokenLen) {
-  auto token = Token(type, std::string_view(src.data() + index, tokenLen));
+  auto token =
+      Token(type, std::string_view(src.data() + index, tokenLen), currentLine);
   index += tokenLen;
   return token;
 }
 
 Token LexerInternal::makeToken(TokenType type, std::string_view str) {
-  return Token(type, str);
+  return Token(type, str, currentLine);
 }
 
 bool isAlphanumeric(char c) {
@@ -107,9 +108,6 @@ Token LexerInternal::makeIdentifierOrBoolean() {
 }
 
 std::optional<Token> LexerInternal::handleWhitespace() {
-  index++; // Consume the whitespace character that caused us to enter this
-           // function
-
   while (index < src.length()) {
     switch (src[index]) {
     case '\n':
@@ -182,7 +180,7 @@ Token LexerInternal::makeString() {
     }
   }
 
-  throw UnclosedDelimiter{};
+  throw UnclosedDelimiter(currentLine);
 }
 
 std::optional<Token> LexerInternal::nextToken() {
@@ -192,11 +190,9 @@ std::optional<Token> LexerInternal::nextToken() {
 
   switch (src[index]) {
   case '\n':
-    currentLine++;
-    [[fallthrough]];
-  case ' ':
-  case '\t':
   case '\r':
+  case '\t':
+  case ' ':
     return handleWhitespace();
 
   case '(':
@@ -303,12 +299,12 @@ std::optional<Token> LexerInternal::nextToken() {
     return std::nullopt;
   };
 
-  std::cout << "LexerInternal::nextToken Unreachable.\n";
-  exit(1);
+  UNREACHABLE();
 }
 
-Lexer::Lexer(std::string code, StringTable *stringTable)
-    : lexerInternal(code, stringTable) {
+Lexer::Lexer(std::string code, StringTable *stringTable,
+             ErrorReporter *errorReporter)
+    : lexerInternal(code, stringTable, errorReporter) {
   current = lexerInternal.nextToken();
   next = lexerInternal.nextToken();
 }

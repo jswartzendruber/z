@@ -1,3 +1,4 @@
+#include "ErrorReporter.hh"
 #include "Parser.hh"
 #include <fstream>
 #include <sstream>
@@ -17,29 +18,30 @@ std::optional<std::string> readFile(const std::string &filename) {
 }
 
 int main(int argc, char **argv) {
+  auto errorReporter = ErrorReporter();
+
   if (argc != 2) {
-    std::cerr << "Error: expected file path as argument\n";
+    errorReporter.report("expected file path as argument");
     return 1;
   }
+  auto fileName = argv[1];
+  errorReporter.setFileName(fileName);
 
-  auto file = readFile(argv[1]);
+  auto file = readFile(fileName);
   if (file.has_value()) {
     std::string code = file.value();
     auto stringTable = StringTable{};
-    auto lexer = Lexer(code, &stringTable);
+    auto lexer = Lexer(code, &stringTable, &errorReporter);
 
     try {
       auto allocator = BumpAllocator();
-      auto parser = Parser(&allocator, lexer);
+      auto parser = Parser(&allocator, lexer, &errorReporter);
       auto fn = parser.parseFunctionDeclaration();
       if (fn.has_value()) {
         std::cout << *fn.value() << "\n";
-      } else {
-        std::cout << "no value.\n";
       }
-    } catch (UnclosedDelimiter _) {
-      std::cerr << "Error: Unclosed delimeter beginning at line "
-                << lexer.currentLine() << "\n";
+    } catch (UnclosedDelimiter ud) {
+      errorReporter.report("unclosed delimiter", ud.line);
       return 1;
     }
   }
