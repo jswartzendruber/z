@@ -5,10 +5,18 @@
 #include "ErrorReporter.hh"
 #include "Lexer.hh"
 
+template <typename T>
+class LinkedList;
+
+class Statement;
+
 class Printable {
 public:
-  virtual void print(std::ostream &os) const = 0;
-  friend std::ostream &operator<<(std::ostream &os, const Printable &node);
+  static int depth;
+  virtual void print(std::ostream &os) = 0;
+  friend std::ostream &operator<<(std::ostream &os, Printable &node);
+
+  void printStmtBlock(std::ostream& os, LinkedList<Statement *> * stmts);
 
   Printable() {}
 };
@@ -31,6 +39,7 @@ class Statement : public Printable {
 public:
   enum class Type {
     FunctionCall,
+    IfStatement,
   } type;
 
   Statement(Statement::Type type) : type(type) {}
@@ -55,7 +64,7 @@ public:
 
   StringValue(std::string_view val)
       : Expression(Expression::Type::StringValue), val(val) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
 };
 
 class IntegerValue : public Expression {
@@ -64,7 +73,7 @@ public:
 
   IntegerValue(uint64_t val)
       : Expression(Expression::Type::IntegerValue), val(val) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
 };
 
 class FloatValue : public Expression {
@@ -72,7 +81,7 @@ public:
   double val;
 
   FloatValue(double val) : Expression(Expression::Type::FloatValue), val(val) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
 };
 
 class BinaryExpression : public Expression {
@@ -84,7 +93,7 @@ public:
   BinaryExpression(Operation op, Expression *lhs, Expression *rhs)
       : Expression(Expression::Type::BinaryExpression), lhs(lhs), rhs(rhs),
         op(op) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
   virtual ~BinaryExpression() = default;
 };
 
@@ -97,7 +106,17 @@ public:
       : Expression(Expression::Type::FunctionCall),
         Statement(Statement::Type::FunctionCall), name(name),
         arguments(arguments) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
+};
+
+class IfStatement : public Statement {
+  Expression *condition;
+  LinkedList<Statement *> *ifTrueStmts;
+  std::optional<LinkedList<Statement *> *> ifFalseStmts;
+
+public:
+  IfStatement(Expression *condition, LinkedList<Statement *> *ifTrueStmts, std::optional<LinkedList<Statement *> *> ifFalseStmts) : Statement(Statement::Type::IfStatement), condition(condition), ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
+  void print(std::ostream &os);
 };
 
 struct Parameter : public Printable {
@@ -107,7 +126,7 @@ public:
 
   Parameter(std::string_view name, std::string_view type)
       : name(name), type(type) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
 };
 
 class FunctionDeclaration : public Printable {
@@ -123,7 +142,7 @@ public:
                       std::optional<std::string_view> returnType)
       : name(name), parameters(parameters), statements(statements),
         returnType(returnType) {}
-  void print(std::ostream &os) const;
+  void print(std::ostream &os);
 };
 
 struct Parser {
@@ -133,7 +152,9 @@ private:
   ErrorReporter *errorReporter;
 
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
+  std::optional<LinkedList<Statement *> *> parseStatementBlock();
   std::optional<Expression *> parseExpressionBp(int minbp);
+  std::optional<IfStatement *> parseIfStatement();
   std::optional<Expression *> parseExpression();
   std::optional<Statement *> parseStatement();
 

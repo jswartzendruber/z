@@ -95,6 +95,8 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   static const StringId trueStr = stringTable->intern("true");
   static const StringId falseStr = stringTable->intern("false");
   static const StringId fnStr = stringTable->intern("fn");
+  static const StringId ifStr = stringTable->intern("if");
+  static const StringId elseStr = stringTable->intern("else");
 
   if (strId == trueStr) {
     return makeToken(TokenType::TrueKeyword, str);
@@ -102,6 +104,10 @@ Token LexerInternal::makeIdentifierOrBoolean() {
     return makeToken(TokenType::FalseKeyword, str);
   } else if (strId == fnStr) {
     return makeToken(TokenType::FnKeyword, str);
+  } else if (strId == ifStr) {
+    return makeToken(TokenType::IfKeyword, str);
+  } else if (strId == elseStr) {
+    return makeToken(TokenType::ElseKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
   }

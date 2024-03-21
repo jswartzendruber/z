@@ -1,4 +1,10 @@
 fn main(a: int, b: int) {
   println("14", 1, 3);
-  println(1, "3");
+  if (1) {
+    println(1);
+    println(2);
+  } else {
+    println(3);
+    println(4);
+  }
 }
