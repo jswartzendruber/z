@@ -37,6 +37,7 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
     {TokenType::IntegerLiteral, "IntegerLiteral"},
     {TokenType::StringLiteral, "StringLiteral"},
     {TokenType::FloatLiteral, "FloatLiteral"},
+    {TokenType::ReturnKeyword, "ReturnKeyword"},
     {TokenType::IfKeyword, "IfKeyword"},
     {TokenType::ElseKeyword, "ElseKeyword"},
     {TokenType::WhileKeyword, "WhileKeyword"},
@@ -97,6 +98,7 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   static const StringId fnStr = stringTable->intern("fn");
   static const StringId ifStr = stringTable->intern("if");
   static const StringId elseStr = stringTable->intern("else");
+  static const StringId returnStr = stringTable->intern("return");
 
   if (strId == trueStr) {
     return makeToken(TokenType::TrueKeyword, str);
@@ -108,6 +110,8 @@ Token LexerInternal::makeIdentifierOrBoolean() {
     return makeToken(TokenType::IfKeyword, str);
   } else if (strId == elseStr) {
     return makeToken(TokenType::ElseKeyword, str);
+  } else if (strId == returnStr) {
+    return makeToken(TokenType::ReturnKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
   }

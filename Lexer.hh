@@ -10,13 +10,10 @@
 #include <unordered_map>
 
 #define UNREACHABLE()                                                          \
-                                                                               \
   std::cerr << "Unreachable tripped: ";                                        \
   std::cerr << __FILE__ << ":";                                                \
   std::cerr << __LINE__ << "\n";                                               \
   exit(1);
-
-void reportError(std::string message);
 
 // An ID that represents a string inside the StringTable.
 struct StringId {
@@ -56,6 +53,7 @@ enum class TokenType {
   IntegerLiteral,
   StringLiteral,
   FloatLiteral,
+  ReturnKeyword,
   IfKeyword,
   ElseKeyword,
   WhileKeyword,

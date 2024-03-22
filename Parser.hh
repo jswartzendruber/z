@@ -5,9 +5,7 @@
 #include "ErrorReporter.hh"
 #include "Lexer.hh"
 
-template <typename T>
-class LinkedList;
-
+template <typename T> class LinkedList;
 class Statement;
 
 class Printable {
@@ -16,7 +14,7 @@ public:
   virtual void print(std::ostream &os) = 0;
   friend std::ostream &operator<<(std::ostream &os, Printable &node);
 
-  void printStmtBlock(std::ostream& os, LinkedList<Statement *> * stmts);
+  void printStmtBlock(std::ostream &os, LinkedList<Statement *> *stmts);
 
   Printable() {}
 };
@@ -40,6 +38,7 @@ public:
   enum class Type {
     FunctionCall,
     IfStatement,
+    ReturnStatement,
   } type;
 
   Statement(Statement::Type type) : type(type) {}
@@ -53,9 +52,19 @@ public:
     StringValue,
     BinaryExpression,
     FunctionCall,
+    Variable,
   } type;
 
   Expression(Expression::Type type) : type(type) {}
+};
+
+class Variable : public Expression {
+public:
+  std::string_view name;
+
+  Variable(std::string_view name)
+      : Expression(Expression::Type::Variable), name(name) {}
+  void print(std::ostream &os);
 };
 
 class StringValue : public Expression {
@@ -115,7 +124,19 @@ class IfStatement : public Statement {
   std::optional<LinkedList<Statement *> *> ifFalseStmts;
 
 public:
-  IfStatement(Expression *condition, LinkedList<Statement *> *ifTrueStmts, std::optional<LinkedList<Statement *> *> ifFalseStmts) : Statement(Statement::Type::IfStatement), condition(condition), ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
+  IfStatement(Expression *condition, LinkedList<Statement *> *ifTrueStmts,
+              std::optional<LinkedList<Statement *> *> ifFalseStmts)
+      : Statement(Statement::Type::IfStatement), condition(condition),
+        ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
+  void print(std::ostream &os);
+};
+
+class ReturnStatement : public Statement {
+  Expression *val;
+
+public:
+  ReturnStatement(Expression *val)
+      : Statement(Statement::Type::ReturnStatement), val(val) {}
   void print(std::ostream &os);
 };
 
@@ -148,18 +169,19 @@ public:
 struct Parser {
 private:
   BumpAllocator<> *allocator;
-  Lexer lexer;
+  Lexer *lexer;
   ErrorReporter *errorReporter;
 
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
   std::optional<LinkedList<Statement *> *> parseStatementBlock();
   std::optional<Expression *> parseExpressionBp(int minbp);
+  std::optional<ReturnStatement *> parseReturnStatement();
   std::optional<IfStatement *> parseIfStatement();
   std::optional<Expression *> parseExpression();
   std::optional<Statement *> parseStatement();
 
 public:
-  Parser(BumpAllocator<> *allocator, Lexer lexer, ErrorReporter *errorReporter)
+  Parser(BumpAllocator<> *allocator, Lexer *lexer, ErrorReporter *errorReporter)
       : allocator(allocator), lexer(lexer), errorReporter(errorReporter) {}
   std::optional<FunctionDeclaration *> parseFunctionDeclaration();
 };

@@ -35,10 +35,19 @@ int main(int argc, char **argv) {
 
     try {
       auto allocator = BumpAllocator();
-      auto parser = Parser(&allocator, lexer, &errorReporter);
-      auto fn = parser.parseFunctionDeclaration();
-      if (fn.has_value()) {
-        std::cout << *fn.value() << "\n";
+      auto parser = Parser(&allocator, &lexer, &errorReporter);
+
+      std::vector<FunctionDeclaration *> fns = {};
+
+      while (lexer.peekToken().has_value()) {
+        auto fn = parser.parseFunctionDeclaration();
+        if (fn.has_value()) {
+          fns.push_back(fn.value());
+        }
+      }
+
+      for (auto fn : fns) {
+        std::cout << *fn << "\n\n";
       }
     } catch (UnclosedDelimiter ud) {
       errorReporter.report("unclosed delimiter", ud.line);
