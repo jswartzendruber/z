@@ -12,6 +12,7 @@ private:
   Lexer *lexer;
   ErrorReporter *errorReporter;
 
+  std::optional<FunctionDeclaration *> parseFunctionDeclaration();
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
   std::optional<LinkedList<Statement *> *> parseStatementBlock();
   std::optional<Expression *> parseExpressionBp(int minbp);
@@ -23,7 +24,7 @@ private:
 public:
   Parser(BumpAllocator<> *allocator, Lexer *lexer, ErrorReporter *errorReporter)
       : allocator(allocator), lexer(lexer), errorReporter(errorReporter) {}
-  std::optional<FunctionDeclaration *> parseFunctionDeclaration();
+  std::optional<Program *> parse();
 };
 
 #endif

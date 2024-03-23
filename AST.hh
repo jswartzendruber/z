@@ -197,4 +197,13 @@ public:
   void print(std::ostream &os);
 };
 
+class Program : public Printable {
+public:
+  LinkedList<FunctionDeclaration *> *functions;
+
+  Program(LinkedList<FunctionDeclaration *> *functions)
+      : functions(functions) {}
+  void print(std::ostream &os);
+};
+
 #endif

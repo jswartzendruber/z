@@ -302,3 +302,29 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   return allocator->allocate(
       FunctionDeclaration(name.src, parameters, body, returnType));
 }
+
+std::optional<Program *> Parser::parse() {
+  LinkedList<FunctionDeclaration *> *functions = nullptr;
+  auto curr = functions;
+
+  while (lexer->peekToken().has_value()) {
+    auto fn = TRY(parseFunctionDeclaration());
+
+    auto next = allocator->allocate(LinkedList<FunctionDeclaration *>());
+    next->elem = fn;
+
+    if (functions == nullptr) {
+      functions = next;
+      curr = next;
+    }
+
+    curr->next = next;
+    curr = next;
+  }
+
+  if (curr) {
+    curr->next = nullptr;
+  }
+
+  return allocator->allocate(Program(functions));
+}

@@ -97,6 +97,7 @@ void Parameter::print(std::ostream &os) {
 }
 
 void FunctionDeclaration::print(std::ostream &os) {
+  printDepth(os, depth);
   os << "FunctionDeclaration(" << name << " ";
   auto curr = parameters;
   int i = 0;
@@ -116,4 +117,16 @@ void FunctionDeclaration::print(std::ostream &os) {
   printStmtBlock(os, statements);
 
   os << ")";
+}
+
+void Program::print(std::ostream &os) {
+  os << "Program(\n";
+  depth += 2;
+  auto curr = functions;
+  while (curr != nullptr) {
+    os << *curr->elem << "\n";
+    curr = curr->next;
+  }
+  os << ")\n";
+  depth -= 2;
 }

@@ -36,18 +36,12 @@ int main(int argc, char **argv) {
     try {
       auto allocator = BumpAllocator();
       auto parser = Parser(&allocator, &lexer, &errorReporter);
+      auto ast = parser.parse();
 
-      std::vector<FunctionDeclaration *> fns = {};
-
-      while (lexer.peekToken().has_value()) {
-        auto fn = parser.parseFunctionDeclaration();
-        if (fn.has_value()) {
-          fns.push_back(fn.value());
-        }
-      }
-
-      for (auto fn : fns) {
-        std::cout << *fn << "\n\n";
+      if (ast.has_value()) {
+        std::cout << *ast.value();
+      } else {
+        std::cout << "no ast found\n";
       }
     } catch (UnclosedDelimiter ud) {
       errorReporter.report("unclosed delimiter", ud.line);
