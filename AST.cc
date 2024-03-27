@@ -46,6 +46,10 @@ std::ostream &operator<<(std::ostream &os, Printable &node) {
 
 void Variable::print(std::ostream &os) { os << "Variable(" << name << ")"; }
 
+void BooleanValue::print(std::ostream &os) {
+  os << "BooleanValue(" << val << ")";
+}
+
 void StringValue::print(std::ostream &os) {
   os << "StringValue(" << val << ")";
 }

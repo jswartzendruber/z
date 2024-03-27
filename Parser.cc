@@ -95,6 +95,14 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
 
   Expression *lhs;
   switch (lhsToken.type) {
+  case TokenType::TrueKeyword:
+    lhs = allocator->allocate(BooleanValue(true));
+    break;
+
+  case TokenType::FalseKeyword:
+    lhs = allocator->allocate(BooleanValue(false));
+    break;
+
   case TokenType::IntegerLiteral:
     uint64_t lhsIntValue;
     std::from_chars(lhsToken.src.data(),

@@ -84,6 +84,7 @@ public:
     BinaryExpression,
     FunctionCall,
     Variable,
+    BooleanValue,
   } type;
 
   Expression(Expression::Type type) : type(type) {}
@@ -96,6 +97,14 @@ public:
   Variable(std::string_view name)
       : Expression(Expression::Type::Variable), name(name) {}
   void print(std::ostream &os);
+};
+
+class BooleanValue : public Expression {
+public:
+  bool val;
+
+  BooleanValue(bool val) : Expression(Expression::Type::BooleanValue), val(val) {}
+  void print(std::ostream& os);
 };
 
 class StringValue : public Expression {
