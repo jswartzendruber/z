@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <iostream>
 #include <optional>
+#include <string_view>
 
 // Acts like the rust '?' operator. Returns early from the function
 // if the optional is none, otherwise assigns the optional to 'name'
@@ -109,6 +110,7 @@ public:
     FunctionCall,
     IfStatement,
     ReturnStatement,
+    LetStatement,
   } type;
 
   Statement(Statement::Type type) : type(type) {}
@@ -208,6 +210,19 @@ public:
               std::optional<LinkedList<Statement *>> ifFalseStmts)
       : Statement(Statement::Type::IfStatement), condition(condition),
         ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
+  void print(std::ostream &os);
+};
+
+class LetStatement : public Statement {
+  std::string_view name;
+  std::optional<std::string_view> type;
+  Expression *initializer;
+
+public:
+  LetStatement(std::string_view name, std::optional<std::string_view> type,
+               Expression *initializer)
+      : Statement(Statement::Type::LetStatement), name(name), type(type),
+        initializer(initializer) {}
   void print(std::ostream &os);
 };
 

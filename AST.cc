@@ -81,6 +81,10 @@ void IfStatement::print(std::ostream &os) {
   os << "))";
 }
 
+void LetStatement::print(std::ostream &os) {
+  os << "LetStatement(" << name << " = " << *initializer << ")";
+}
+
 void FunctionCall::print(std::ostream &os) {
   os << "FunctionCall(" << name << "(";
   auto curr = arguments.front();

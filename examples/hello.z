@@ -3,7 +3,8 @@ fn id(a: int) {
 }
 
 fn main() {
-  if (true) {
+  let x = true;
+  if (x) {
     id(2);
   } else {
     id(4);

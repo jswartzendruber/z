@@ -210,6 +210,24 @@ std::optional<ReturnStatement *> Parser::parseReturnStatement() {
   return allocator->allocate(ReturnStatement(expr));
 }
 
+std::optional<LetStatement *> Parser::parseLetStatement() {
+  EXPECT(TokenType::LetKeyword);
+  auto name = EXPECT(TokenType::Identifier).src;
+
+  std::optional<std::string_view> type = std::nullopt;
+  auto peek = TRY(lexer->peekToken());
+  if (peek.type == TokenType::Colon) {
+    EXPECT(TokenType::Colon);
+    type = EXPECT(TokenType::Identifier).src;
+  }
+
+  EXPECT(TokenType::Eq);
+  auto initializer = TRY(parseExpression());
+  EXPECT(TokenType::Semicolon);
+
+  return allocator->allocate(LetStatement(name, type, initializer));
+}
+
 std::optional<Statement *> Parser::parseStatement() {
   auto peekToken = TRY(lexer->peekToken());
 
@@ -217,6 +235,8 @@ std::optional<Statement *> Parser::parseStatement() {
     return TRY(parseIfStatement());
   } else if (peekToken.type == TokenType::ReturnKeyword) {
     return TRY(parseReturnStatement());
+  } else if (peekToken.type == TokenType::LetKeyword) {
+    return TRY(parseLetStatement());
   } else if (peekToken.type == TokenType::Identifier) {
     auto lhsToken = EXPECT(TokenType::Identifier);
     auto fn = (Statement *)TRY(parseFunctionCall(lhsToken));

@@ -54,6 +54,7 @@ enum class TokenType {
   StringLiteral,
   FloatLiteral,
   ReturnKeyword,
+  LetKeyword,
   IfKeyword,
   ElseKeyword,
   WhileKeyword,
