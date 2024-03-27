@@ -42,8 +42,7 @@ infixBindingPower(TokenType type) {
 std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
   EXPECT(TokenType::LParen);
 
-  LinkedList<Expression *> *arguments = nullptr;
-  auto curr = arguments;
+  auto arguments = LinkedList<Expression *>(allocator);
 
   // Collect arguments until we hit closing ')'
   std::optional<Token> token;
@@ -51,17 +50,9 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
          token.value().type != TokenType::RParen) {
     std::optional<Expression *> arg = parseExpression();
     if (arg.has_value()) {
-      auto next = allocator->allocate(LinkedList<Expression *>());
-      next->elem = arg.value();
-
-      if (arguments == nullptr) {
-        arguments = next;
-        curr = next;
-      }
-
-      curr->next = next;
-      curr = next;
+      arguments.push_back(arg.value());
       auto peek = TRY(lexer->peekToken());
+
       if (peek.type == TokenType::RParen) {
         break;
       } else if (peek.type == TokenType::Comma) {
@@ -77,9 +68,6 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
       errorReporter->report("expected function argument");
       return std::nullopt;
     }
-  }
-  if (curr) {
-    curr->next = nullptr;
   }
   EXPECT(TokenType::RParen);
 
@@ -176,33 +164,22 @@ std::optional<Expression *> Parser::parseExpression() {
   return parseExpressionBp(0);
 }
 
-std::optional<LinkedList<Statement *> *> Parser::parseStatementBlock() {
+std::optional<LinkedList<Statement *>> Parser::parseStatementBlock() {
   EXPECT(TokenType::LCurly);
 
-  LinkedList<Statement *> *body = nullptr;
-  auto currStmt = body;
+  auto body = LinkedList<Statement *>(allocator);
 
   std::optional<Token> token;
   while ((token = lexer->peekToken()) &&
          token.value().type != TokenType::RCurly) {
     auto stmt = TRY(parseStatement());
+    body.push_back(stmt);
 
-    auto next = allocator->allocate(LinkedList<Statement *>());
-    next->elem = stmt;
-
-    if (body == nullptr) {
-      body = next;
-      currStmt = next;
-    }
-
-    currStmt->next = next;
-    currStmt = next;
     auto peek = TRY(lexer->peekToken());
     if (peek.type == TokenType::RCurly) {
       break;
     }
   }
-  currStmt->next = nullptr;
 
   EXPECT(TokenType::RCurly);
   return body;
@@ -216,7 +193,7 @@ std::optional<IfStatement *> Parser::parseIfStatement() {
 
   auto stmtsIfTrue = TRY(parseStatementBlock());
 
-  std::optional<LinkedList<Statement *> *> stmtsIfFalse = std::nullopt;
+  std::optional<LinkedList<Statement *>> stmtsIfFalse = std::nullopt;
   auto peek = TRY(lexer->peekToken());
   if (peek.type == TokenType::ElseKeyword) {
     EXPECT(TokenType::ElseKeyword);
@@ -256,8 +233,7 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
   EXPECT(TokenType::LParen);
 
   // collect parameters
-  LinkedList<Parameter *> *parameters = nullptr;
-  auto curr = parameters;
+  auto parameters = LinkedList<Parameter *>(allocator);
 
   // Collect parameters until we hit closing ')'
   std::optional<Token> token;
@@ -267,16 +243,9 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     EXPECT(TokenType::Colon);
     auto p_type = EXPECT(TokenType::Identifier);
 
-    auto next = allocator->allocate(LinkedList<Parameter *>());
-    next->elem = allocator->allocate(Parameter(p_name.src, p_type.src));
+    parameters.push_back(
+        allocator->allocate(Parameter(p_name.src, p_type.src)));
 
-    if (parameters == nullptr) {
-      parameters = next;
-      curr = next;
-    }
-
-    curr->next = next;
-    curr = next;
     auto peek = TRY(lexer->peekToken());
     if (peek.type == TokenType::RParen) {
       break;
@@ -290,9 +259,6 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
       errorReporter->report(ss.str(), peek.srcLine);
       return std::nullopt;
     }
-  }
-  if (curr) {
-    curr->next = nullptr;
   }
   EXPECT(TokenType::RParen);
 
@@ -312,26 +278,11 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
 }
 
 std::optional<Program *> Parser::parse() {
-  LinkedList<FunctionDeclaration *> *functions = nullptr;
-  auto curr = functions;
+  auto functions = LinkedList<FunctionDeclaration *>(allocator);
 
   while (lexer->peekToken().has_value()) {
     auto fn = TRY(parseFunctionDeclaration());
-
-    auto next = allocator->allocate(LinkedList<FunctionDeclaration *>());
-    next->elem = fn;
-
-    if (functions == nullptr) {
-      functions = next;
-      curr = next;
-    }
-
-    curr->next = next;
-    curr = next;
-  }
-
-  if (curr) {
-    curr->next = nullptr;
+    functions.push_back(fn);
   }
 
   return allocator->allocate(Program(functions));

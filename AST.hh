@@ -1,6 +1,7 @@
 #ifndef AST_HH
 #define AST_HH
 
+#include "BumpAllocator.hh"
 #include <cstdint>
 #include <iostream>
 #include <optional>
@@ -45,16 +46,54 @@ public:
   virtual void print(std::ostream &os) = 0;
   friend std::ostream &operator<<(std::ostream &os, Printable &node);
 
-  void printStmtBlock(std::ostream &os, LinkedList<Statement *> *stmts);
+  void printStmtBlock(std::ostream &os, LinkedList<Statement *> stmts);
 
   Printable() {}
 };
 
-template <typename T> struct LinkedList {
-  T elem;
-  LinkedList<T> *next;
+template <typename T> class LinkedList {
+public:
+  struct Node {
+    T data;
+    Node *nxt;
 
-  LinkedList() : elem(0), next(nullptr) {}
+    Node(T data, Node *nxt = nullptr) : data(data), nxt(nxt) {}
+
+    T value() { return data; }
+    Node *next() { return nxt; }
+  };
+
+private:
+  BumpAllocator<> *allocator;
+  Node *head;
+  Node *tail;
+  int size;
+
+public:
+  void push_back(T val) {
+    Node *node = allocator->allocate(Node(val));
+    if (tail) {
+      tail->nxt = node;
+      tail = node;
+    } else {
+      head = node;
+      tail = node;
+    }
+    size++;
+  }
+
+  LinkedList(BumpAllocator<> *allocator)
+      : allocator(allocator), head(nullptr), tail(nullptr), size(0) {}
+
+  LinkedList(BumpAllocator<> *allocator, T val)
+      : allocator(allocator), head(nullptr), tail(nullptr), size(0) {
+    push_back(val);
+  }
+
+  Node *front() { return head; }
+  Node *back() { return tail; }
+  Node *next() { return head->next(); }
+  int len() { return size; }
 };
 
 enum class Operation {
@@ -103,8 +142,9 @@ class BooleanValue : public Expression {
 public:
   bool val;
 
-  BooleanValue(bool val) : Expression(Expression::Type::BooleanValue), val(val) {}
-  void print(std::ostream& os);
+  BooleanValue(bool val)
+      : Expression(Expression::Type::BooleanValue), val(val) {}
+  void print(std::ostream &os);
 };
 
 class StringValue : public Expression {
@@ -148,10 +188,10 @@ public:
 
 class FunctionCall : public Expression, public Statement {
   std::string_view name;
-  LinkedList<Expression *> *arguments;
+  LinkedList<Expression *> arguments;
 
 public:
-  FunctionCall(std::string_view name, LinkedList<Expression *> *arguments)
+  FunctionCall(std::string_view name, LinkedList<Expression *> arguments)
       : Expression(Expression::Type::FunctionCall),
         Statement(Statement::Type::FunctionCall), name(name),
         arguments(arguments) {}
@@ -160,12 +200,12 @@ public:
 
 class IfStatement : public Statement {
   Expression *condition;
-  LinkedList<Statement *> *ifTrueStmts;
-  std::optional<LinkedList<Statement *> *> ifFalseStmts;
+  LinkedList<Statement *> ifTrueStmts;
+  std::optional<LinkedList<Statement *>> ifFalseStmts;
 
 public:
-  IfStatement(Expression *condition, LinkedList<Statement *> *ifTrueStmts,
-              std::optional<LinkedList<Statement *> *> ifFalseStmts)
+  IfStatement(Expression *condition, LinkedList<Statement *> ifTrueStmts,
+              std::optional<LinkedList<Statement *>> ifFalseStmts)
       : Statement(Statement::Type::IfStatement), condition(condition),
         ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
   void print(std::ostream &os);
@@ -193,13 +233,12 @@ public:
 class FunctionDeclaration : public Printable {
 public:
   std::string_view name;
-  LinkedList<Parameter *> *parameters;
-  LinkedList<Statement *> *statements;
+  LinkedList<Parameter *> parameters;
+  LinkedList<Statement *> statements;
   std::optional<std::string_view> returnType;
 
-  FunctionDeclaration(std::string_view name,
-                      LinkedList<Parameter *> *parameters,
-                      LinkedList<Statement *> *statements,
+  FunctionDeclaration(std::string_view name, LinkedList<Parameter *> parameters,
+                      LinkedList<Statement *> statements,
                       std::optional<std::string_view> returnType)
       : name(name), parameters(parameters), statements(statements),
         returnType(returnType) {}
@@ -208,10 +247,9 @@ public:
 
 class Program : public Printable {
 public:
-  LinkedList<FunctionDeclaration *> *functions;
+  LinkedList<FunctionDeclaration *> functions;
 
-  Program(LinkedList<FunctionDeclaration *> *functions)
-      : functions(functions) {}
+  Program(LinkedList<FunctionDeclaration *> functions) : functions(functions) {}
   void print(std::ostream &os);
 };
 

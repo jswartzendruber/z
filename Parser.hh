@@ -1,10 +1,10 @@
 #ifndef PARSER_HH
 #define PARSER_HH
 
+#include "AST.hh"
 #include "BumpAllocator.hh"
 #include "ErrorReporter.hh"
 #include "Lexer.hh"
-#include "AST.hh"
 
 struct Parser {
 private:
@@ -14,7 +14,7 @@ private:
 
   std::optional<FunctionDeclaration *> parseFunctionDeclaration();
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
-  std::optional<LinkedList<Statement *> *> parseStatementBlock();
+  std::optional<LinkedList<Statement *>> parseStatementBlock();
   std::optional<Expression *> parseExpressionBp(int minbp);
   std::optional<ReturnStatement *> parseReturnStatement();
   std::optional<IfStatement *> parseIfStatement();
