@@ -122,6 +122,53 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   }
 }
 
+std::optional<Token> LexerInternal::consumeSingleLineComment() {
+  index += 2; // Consume '//'
+  while (index < src.length()) {
+    switch (src[index]) {
+    case '\n':
+      // End of comment. Consume and parse another token.
+      currentLine++;
+      index++; // Consume end of line
+      return nextToken();
+
+    default:
+      // Haven't reached end of line yet, keep consuming
+      index++;
+    }
+  }
+
+  UNREACHABLE();
+}
+
+std::optional<Token> LexerInternal::consumeMultiLineComment() {
+  index += 2; // Consume '/*'
+
+  while (index < src.length()) {
+    switch (src[index]) {
+    case '*':
+      index++; // Consume '*'
+      if (index < src.length()) {
+        if (src[index] == '/') {
+          // End of comment, consume and parse another token.
+          index++; // Consume '/'
+          return nextToken();
+        }
+      }
+      break;
+
+    case '\n':
+      currentLine++;
+      [[fallthrough]];
+    default:
+      // Nothing yet, keep going
+      index++;
+    }
+  }
+
+  UNREACHABLE();
+}
+
 std::optional<Token> LexerInternal::handleWhitespace() {
   while (index < src.length()) {
     switch (src[index]) {
@@ -212,6 +259,16 @@ std::optional<Token> LexerInternal::nextToken() {
   case ' ':
     return handleWhitespace();
 
+  case '/':
+    if (index + 1 < src.length()) {
+      if (src[index + 1] == '/') {
+        return consumeSingleLineComment();
+      } else if (src[index + 1] == '*') {
+        return consumeMultiLineComment();
+      }
+    }
+    return makeToken(TokenType::Slash, 1);
+
   case '(':
     return makeToken(TokenType::LParen, 1);
   case ')':
@@ -228,8 +285,7 @@ std::optional<Token> LexerInternal::nextToken() {
     return makeToken(TokenType::Plus, 1);
   case '*':
     return makeToken(TokenType::Star, 1);
-  case '/':
-    return makeToken(TokenType::Slash, 1);
+
   case ';':
     return makeToken(TokenType::Semicolon, 1);
   case '>':

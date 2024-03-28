@@ -120,6 +120,9 @@ private:
   Token makeNumber();
   Token makeString();
 
+  std::optional<Token> consumeSingleLineComment();
+  std::optional<Token> consumeMultiLineComment();
+
   // Consumes whitespace until it reaches any other token, then calls
   // Lexer::nextToken and returns the result.
   std::optional<Token> handleWhitespace();
