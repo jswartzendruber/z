@@ -22,6 +22,7 @@ private:
   std::optional<LinkedList<Statement *>> parseStatementBlock();
   std::optional<Expression *> parseExpressionBp(int minbp);
   std::optional<ReturnStatement *> parseReturnStatement();
+  std::optional<WhileStatement *> parseWhileStatement();
   std::optional<LetStatement *> parseLetStatement();
   std::optional<IfStatement *> parseIfStatement();
   std::optional<Expression *> parseExpression();

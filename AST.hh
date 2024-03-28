@@ -114,6 +114,7 @@ public:
     IfStatement,
     ReturnStatement,
     LetStatement,
+    WhileStatement,
   } type;
 
   Statement(Statement::Type type) : type(type) {}
@@ -226,6 +227,15 @@ public:
                Expression *initializer)
       : Statement(Statement::Type::LetStatement), name(name), type(type),
         initializer(initializer) {}
+  void print(std::ostream &os);
+};
+
+class WhileStatement : public Statement {
+  Expression* condition;
+  LinkedList<Statement *> body;
+
+public:
+  WhileStatement(Expression* condition, LinkedList<Statement *> body) : Statement(Statement::Type::WhileStatement), condition(condition), body(body) {}
   void print(std::ostream &os);
 };
 

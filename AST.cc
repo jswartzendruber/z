@@ -73,6 +73,12 @@ void ReturnStatement::print(std::ostream &os) {
   os << ")";
 }
 
+void WhileStatement::print(std::ostream &os) {
+  os << "While((" << *condition << ") ";
+  printStmtBlock(os, body);
+  os << ")";
+}
+
 void IfStatement::print(std::ostream &os) {
   os << "IfStatement(" << *condition << ") ";
   printStmtBlock(os, ifTrueStmts);

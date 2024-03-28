@@ -102,6 +102,7 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   static const StringId elseStr = stringTable->intern("else");
   static const StringId returnStr = stringTable->intern("return");
   static const StringId letStr = stringTable->intern("let");
+  static const StringId whileStr = stringTable->intern("while");
 
   if (strId == trueStr) {
     return makeToken(TokenType::TrueKeyword, str);
@@ -117,6 +118,8 @@ Token LexerInternal::makeIdentifierOrBoolean() {
     return makeToken(TokenType::ReturnKeyword, str);
   } else if (strId == letStr) {
     return makeToken(TokenType::LetKeyword, str);
+  } else if (strId == whileStr) {
+    return makeToken(TokenType::WhileKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
   }

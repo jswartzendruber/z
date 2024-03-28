@@ -257,6 +257,18 @@ std::optional<LetStatement *> Parser::parseLetStatement() {
   return allocator->allocate(LetStatement(name, type, initializer));
 }
 
+std::optional<WhileStatement *> Parser::parseWhileStatement() {
+  EXPECT(TokenType::WhileKeyword);
+
+  EXPECT(TokenType::LParen);
+  auto condition = TRY(parseExpression());
+  EXPECT(TokenType::RParen);
+
+  auto body = TRY(parseStatementBlock());
+
+  return allocator->allocate(WhileStatement(condition, body));
+}
+
 std::optional<Statement *> Parser::parseStatement() {
   auto peekToken = TRY(lexer->peekToken());
 
@@ -266,6 +278,8 @@ std::optional<Statement *> Parser::parseStatement() {
     return TRY(parseReturnStatement());
   } else if (peekToken.type == TokenType::LetKeyword) {
     return TRY(parseLetStatement());
+  } else if (peekToken.type == TokenType::WhileKeyword) {
+    return TRY(parseWhileStatement());
   } else if (peekToken.type == TokenType::Identifier) {
     auto lhsToken = EXPECT(TokenType::Identifier);
     auto fn = (Statement *)TRY(parseFunctionCall(lhsToken));
