@@ -1,6 +1,5 @@
 fn id(a: int) {
-  return;
-  return a;
+  return -1 * -2;
 }
 
 fn main() {

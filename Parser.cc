@@ -76,6 +76,11 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
 
 std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
   auto lhsToken = TRY(lexer->nextToken());
+  bool negative = false;
+  if (lhsToken.type == TokenType::Minus) {
+    negative = true;
+    lhsToken = TRY(lexer->nextToken());
+  }
 
   // We may use this to check for a function call if the lhsToken is a string
   // literal.
@@ -92,9 +97,12 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     break;
 
   case TokenType::IntegerLiteral:
-    uint64_t lhsIntValue;
+    int64_t lhsIntValue;
     std::from_chars(lhsToken.src.data(),
                     lhsToken.src.data() + lhsToken.src.size(), lhsIntValue);
+    if (negative) {
+      lhsIntValue *= -1;
+    }
     lhs = allocator->allocate(IntegerValue(lhsIntValue));
     break;
 
@@ -102,6 +110,9 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     double lhsFloatValue;
     std::from_chars(lhsToken.src.data(),
                     lhsToken.src.data() + lhsToken.src.size(), lhsFloatValue);
+    if (negative) {
+      lhsFloatValue *= -1;
+    }
     lhs = allocator->allocate(FloatValue(lhsFloatValue));
     break;
 

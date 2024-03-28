@@ -162,9 +162,9 @@ public:
 
 class IntegerValue : public Expression {
 public:
-  uint64_t val;
+  int64_t val;
 
-  IntegerValue(uint64_t val)
+  IntegerValue(int64_t val)
       : Expression(Expression::Type::IntegerValue), val(val) {}
   void print(std::ostream &os);
 };
