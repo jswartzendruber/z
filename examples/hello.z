@@ -1,4 +1,5 @@
 fn id(a: int) {
+  return;
   return a;
 }
 

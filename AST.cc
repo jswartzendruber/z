@@ -66,7 +66,11 @@ void BinaryExpression::print(std::ostream &os) {
 }
 
 void ReturnStatement::print(std::ostream &os) {
-  os << "ReturnStatement(" << *val << ")";
+  os << "ReturnStatement(";
+  if (val.has_value()) {
+    os << *val.value();
+  }
+  os << ")";
 }
 
 void IfStatement::print(std::ostream &os) {

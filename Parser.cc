@@ -205,8 +205,17 @@ std::optional<IfStatement *> Parser::parseIfStatement() {
 
 std::optional<ReturnStatement *> Parser::parseReturnStatement() {
   EXPECT(TokenType::ReturnKeyword);
-  auto expr = TRY(parseExpression());
+
+  std::optional<Expression *> expr;
+  auto peek = TRY(lexer->peekToken());
+  if (peek.type == TokenType::Semicolon) {
+    expr = std::nullopt;
+  } else {
+    expr = TRY(parseExpression());
+  }
+
   EXPECT(TokenType::Semicolon);
+
   return allocator->allocate(ReturnStatement(expr));
 }
 

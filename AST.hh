@@ -229,10 +229,10 @@ public:
 };
 
 class ReturnStatement : public Statement {
-  Expression *val;
+  std::optional<Expression *> val;
 
 public:
-  ReturnStatement(Expression *val)
+  ReturnStatement(std::optional<Expression *> val)
       : Statement(Statement::Type::ReturnStatement), val(val) {}
   void print(std::ostream &os);
 };
