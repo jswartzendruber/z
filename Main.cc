@@ -42,6 +42,10 @@ int main(int argc, char **argv) {
       auto parser = Parser(&allocator, &lexer, &errorReporter);
       auto ast = parser.parse();
 
+      if (parser.anyErrors()) {
+        return 1;
+      }
+
       if (ast.has_value()) {
         std::cout << *ast.value();
       }

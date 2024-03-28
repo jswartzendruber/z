@@ -11,6 +11,11 @@ private:
   BumpAllocator<> *allocator;
   Lexer *lexer;
   ErrorReporter *errorReporter;
+  /* When this is set, tokens will be consumed and discarded until a semicolon
+   * is reached. This is to help report multiple errors. */
+  bool recoveryMode;
+  /* When this is set, compilation will stop after typechecking. */
+  bool hadErrors;
 
   std::optional<FunctionDeclaration *> parseFunctionDeclaration();
   std::optional<FunctionCall *> parseFunctionCall(Token lhsToken);
@@ -21,11 +26,18 @@ private:
   std::optional<IfStatement *> parseIfStatement();
   std::optional<Expression *> parseExpression();
   std::optional<Statement *> parseStatement();
+  void synchronize();
+
+  void report(std::string error, int line = 0);
 
 public:
   Parser(BumpAllocator<> *allocator, Lexer *lexer, ErrorReporter *errorReporter)
-      : allocator(allocator), lexer(lexer), errorReporter(errorReporter) {}
+      : allocator(allocator), lexer(lexer), errorReporter(errorReporter),
+        recoveryMode(false), hadErrors(false) {}
+
   std::optional<Program *> parse();
+
+  bool anyErrors();
 };
 
 #endif

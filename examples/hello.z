@@ -1,11 +1,13 @@
 fn id(a: int) {
-  return -1 * -2;
+  asdf;
+  two + ;
+  three  ;
 }
 
 fn main() {
   let x = true;
   if (x) {
-    id(2);
+    id(2)
   } else {
     id(4);
   }

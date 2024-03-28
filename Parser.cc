@@ -61,11 +61,11 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
         std::stringstream ss;
         ss << "expected ',' or ')' when parsing function call, got: ";
         ss << "'" << peek.src << "'";
-        errorReporter->report(ss.str(), peek.srcLine);
+        report(ss.str(), peek.srcLine);
         return std::nullopt;
       }
     } else {
-      errorReporter->report("expected function argument");
+      report("expected function argument");
       return std::nullopt;
     }
   }
@@ -136,7 +136,7 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     std::stringstream ss;
     ss << "expected expression, got: ";
     ss << "'" << lhsToken.src << "'";
-    errorReporter->report(ss.str(), lhsToken.srcLine);
+    report(ss.str(), lhsToken.srcLine);
     return std::nullopt;
   }
 
@@ -183,8 +183,17 @@ std::optional<LinkedList<Statement *>> Parser::parseStatementBlock() {
   std::optional<Token> token;
   while ((token = lexer->peekToken()) &&
          token.value().type != TokenType::RCurly) {
-    auto stmt = TRY(parseStatement());
-    body.push_back(stmt);
+    std::optional<Statement *> stmt = parseStatement();
+
+    if (stmt.has_value()) {
+      body.push_back(stmt.value());
+    } else if (recoveryMode) {
+      // Try to find a semicolon and continue parsing
+      synchronize();
+    } else {
+      // Can't recover, bail.
+      return std::nullopt;
+    }
 
     auto peek = TRY(lexer->peekToken());
     if (peek.type == TokenType::RCurly) {
@@ -296,7 +305,7 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
       ss << "expected ',' or ')' when parsing function declaration parameters, "
             "got: ";
       ss << "'" << peek.src << "'";
-      errorReporter->report(ss.str(), peek.srcLine);
+      report(ss.str(), peek.srcLine);
       return std::nullopt;
     }
   }
@@ -327,3 +336,34 @@ std::optional<Program *> Parser::parse() {
 
   return allocator->allocate(Program(functions));
 }
+
+/* Consumes tokens until we after we reach a semicolon. Then we should be able
+ * to continue parsing statements.*/
+void Parser::synchronize() {
+  while (true) {
+    auto peek = lexer->nextToken();
+
+    if (peek.has_value()) {
+      if (peek.value().type == TokenType::Semicolon) {
+        // We found a semicolon, continue parsing normally.
+        recoveryMode = false;
+        return;
+      }
+    } else {
+      // No tokens left, bail.
+      return;
+    }
+  }
+}
+
+void Parser::report(std::string error, int line) {
+  // Don't report any errors while we are recovering from another error.
+  if (recoveryMode) {
+    return;
+  }
+
+  hadErrors = true;
+  errorReporter->report(error, line);
+}
+
+bool Parser::anyErrors() { return hadErrors; }

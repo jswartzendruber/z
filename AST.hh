@@ -34,7 +34,8 @@
       ss << "expected " << tokenTypeName(tokenType) << ", got ";               \
       ss << tokenTypeName(peekVal.type) << " ";                                \
       ss << "'" << peekVal.src << "'";                                         \
-      errorReporter->report(ss.str(), peekVal.srcLine);                        \
+      report(ss.str(), peekVal.srcLine);                                       \
+      recoveryMode = true;                                                     \
       return std::nullopt;                                                     \
     }                                                                          \
     lexer->nextToken().value();                                                \
