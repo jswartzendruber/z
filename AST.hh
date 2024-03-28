@@ -30,9 +30,11 @@
     }                                                                          \
     auto peekVal = peekTok.value();                                            \
     if (peekVal.type != tokenType) {                                           \
-      std::cout << "Error: expected " << tokenTypeName(tokenType);             \
-      std::cout << ", got " << tokenTypeName(peekVal.type) << " ";             \
-      std::cout << "'" << peekVal.src << "'\n";                                \
+      std::stringstream ss;                                                    \
+      ss << "expected " << tokenTypeName(tokenType) << ", got ";               \
+      ss << tokenTypeName(peekVal.type) << " ";                                \
+      ss << "'" << peekVal.src << "'";                                         \
+      errorReporter->report(ss.str(), peekVal.srcLine);                        \
       return std::nullopt;                                                     \
     }                                                                          \
     lexer->nextToken().value();                                                \

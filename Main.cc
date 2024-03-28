@@ -3,10 +3,13 @@
 #include <fstream>
 #include <sstream>
 
-std::optional<std::string> readFile(const std::string &filename) {
+std::optional<std::string> readFile(const std::string &filename,
+                                    ErrorReporter *errorReporter) {
   std::ifstream file(filename, std::ios::binary);
   if (!file.is_open()) {
-    std::cerr << "Error: Could not open file " << filename << "\n";
+    std::stringstream ss;
+    ss << "could not open file '" << filename << "'";
+    errorReporter->report(ss.str());
     return std::nullopt;
   }
 
@@ -24,10 +27,11 @@ int main(int argc, char **argv) {
     errorReporter.report("expected file path as argument");
     return 1;
   }
+
   auto fileName = argv[1];
+  auto file = readFile(fileName, &errorReporter);
   errorReporter.setFileName(fileName);
 
-  auto file = readFile(fileName);
   if (file.has_value()) {
     std::string code = file.value();
     auto stringTable = StringTable{};
@@ -40,8 +44,6 @@ int main(int argc, char **argv) {
 
       if (ast.has_value()) {
         std::cout << *ast.value();
-      } else {
-        std::cout << "no ast found\n";
       }
     } catch (UnclosedDelimiter ud) {
       errorReporter.report("unclosed delimiter", ud.line);
