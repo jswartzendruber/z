@@ -1,5 +1,6 @@
 #include "Lexer.hh"
 #include <cassert>
+#include <sstream>
 
 StringId StringTable::intern(std::string_view s) {
   auto id = table.find(s);
@@ -198,6 +199,8 @@ Token LexerInternal::makeString() {
 }
 
 std::optional<Token> LexerInternal::nextToken() {
+  std::stringstream ss; // In case we need to construct an error message
+
   if (index >= src.length()) {
     return std::nullopt;
   }
@@ -310,6 +313,11 @@ std::optional<Token> LexerInternal::nextToken() {
     return makeIdentifierOrBoolean();
 
   default:
+    if (index < src.length()) {
+      // we must have encountered a weird token. report an error.
+      ss << "unexpected token '" << src[index] << "'";
+      errorReporter->report(ss.str(), currentLine);
+    }
     return std::nullopt;
   };
 
