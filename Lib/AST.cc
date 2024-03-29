@@ -145,10 +145,8 @@ void Parameter::print(std::ostream &os) {
 void FunctionDeclaration::print(std::ostream &os) {
   printDepth(os, depth);
   os << "FunctionDeclaration(" << name << " ";
-  int i = 0;
   for (auto &param : parameters) {
     os << *param << " ";
-    i++;
   }
 
   if (returnType.has_value()) {

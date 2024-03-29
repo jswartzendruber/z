@@ -37,20 +37,15 @@ int main(int argc, char **argv) {
     auto stringTable = StringTable{};
     auto lexer = Lexer(code, &stringTable, &errorReporter);
 
-    try {
-      auto parser = Parser(&lexer, &errorReporter);
-      auto ast = parser.parse();
+    auto parser = Parser(&lexer, &errorReporter);
+    auto ast = parser.parse();
 
-      if (parser.anyErrors()) {
-        return 1;
-      }
-
-      if (ast.has_value()) {
-        std::cout << ast.value();
-      }
-    } catch (UnclosedDelimiter ud) {
-      errorReporter.report("unclosed delimiter", ud.line);
+    if (parser.anyErrors()) {
       return 1;
+    }
+
+    if (ast.has_value()) {
+      std::cout << ast.value();
     }
   }
 

@@ -119,7 +119,7 @@ private:
 
   Token makeIdentifierOrBoolean();
   Token makeNumber();
-  Token makeString();
+  std::optional<Token> makeString();
 
   std::optional<Token> consumeSingleLineComment();
   std::optional<Token> consumeMultiLineComment();
@@ -134,7 +134,6 @@ private:
   LexerInternal lexerInternal;
   std::optional<Token> current;
   std::optional<Token> next;
-  ErrorReporter *errorReporter;
 
 public:
   Lexer(std::string code, StringTable *stringTable,

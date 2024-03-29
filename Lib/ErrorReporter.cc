@@ -5,6 +5,9 @@ void ErrorReporter::setFileName(std::string name) { fileName = name; }
 
 void ErrorReporter::report(std::string message, int line) {
   errors++;
+  if (swallowErrors)
+    return;
+
   std::cerr << "\033[1;31merror: \033[0m" << message << "\n";
   if (line > 0) {
     std::cerr << "  --> " << fileName << ":" << line << "\n";

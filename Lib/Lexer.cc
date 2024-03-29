@@ -145,7 +145,7 @@ std::optional<Token> LexerInternal::consumeSingleLineComment() {
     }
   }
 
-  UNREACHABLE();
+  return std::nullopt;
 }
 
 std::optional<Token> LexerInternal::consumeMultiLineComment() {
@@ -173,7 +173,7 @@ std::optional<Token> LexerInternal::consumeMultiLineComment() {
     }
   }
 
-  UNREACHABLE();
+  return std::nullopt;
 }
 
 std::optional<Token> LexerInternal::handleWhitespace() {
@@ -236,7 +236,7 @@ end:
       (floating) ? TokenType::FloatLiteral : TokenType::IntegerLiteral, len);
 }
 
-Token LexerInternal::makeString() {
+std::optional<Token> LexerInternal::makeString() {
   int len = 1; // The opening quote
 
   while (index + len < src.length()) {
@@ -249,7 +249,8 @@ Token LexerInternal::makeString() {
     }
   }
 
-  throw UnclosedDelimiter(currentLine);
+  errorReporter->report("string is missing a closing quote", currentLine);
+  return std::nullopt;
 }
 
 std::optional<Token> LexerInternal::nextToken() {
