@@ -108,14 +108,14 @@ Parser::parseExpressionBp(int minbp) {
   case TokenType::Plus:
     prefixBp = TRY(prefixBindingPower(lhsToken.type));
     lhs = std::make_unique<UnaryExpression>(
-        std::move(TRY(parseExpressionBp(std::get<1>(prefixBp)))),
+        TRY(parseExpressionBp(std::get<1>(prefixBp))),
         UnaryOperation::Positive);
     break;
 
   case TokenType::Minus:
     prefixBp = TRY(prefixBindingPower(lhsToken.type));
     lhs = std::make_unique<UnaryExpression>(
-        std::move(TRY(parseExpressionBp(std::get<1>(prefixBp)))),
+        TRY(parseExpressionBp(std::get<1>(prefixBp))),
         UnaryOperation::Negative);
     break;
 
@@ -371,8 +371,8 @@ Parser::parseFunctionDeclaration() {
     EXPECT(TokenType::Colon);
     auto p_type = EXPECT(TokenType::Identifier);
 
-    parameters.push_back(std::move(
-        std::make_unique<Parameter>(Parameter(p_name.src, p_type.src))));
+    parameters.push_back(
+        std::make_unique<Parameter>(Parameter(p_name.src, p_type.src)));
 
     auto peek = TRY(lexer->peekToken());
     if (peek.type == TokenType::RParen) {
