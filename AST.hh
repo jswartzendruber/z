@@ -15,6 +15,9 @@
   ({                                                                           \
     auto val = opt;                                                            \
     if (!val.has_value()) {                                                    \
+      std::stringstream ss;                                                    \
+      ss << __FILE__ << ":" << __LINE__ << " expected a value for " << #opt;   \
+      report(ss.str());                                                        \
       return std::nullopt;                                                     \
     }                                                                          \
     std::move(val.value());                                                    \
@@ -49,9 +52,6 @@ public:
   static int depth;
   virtual void print(std::ostream &os) = 0;
   friend std::ostream &operator<<(std::ostream &os, Printable &node);
-
-  void printStmtBlock(std::ostream &os,
-                      std::vector<std::unique_ptr<Statement>> &stmts);
   virtual ~Printable() = default;
   Printable() {}
 };
@@ -61,6 +61,9 @@ enum class Operation {
   Sub,
   Mul,
   Div,
+  LessThan,
+  GreaterThan,
+  Increment,
 };
 
 class Statement : public Printable {
@@ -71,6 +74,7 @@ public:
     ReturnStatement,
     LetStatement,
     WhileStatement,
+    ForStatement,
   } type;
 
   Statement(Statement::Type type) : type(type) {}
@@ -87,6 +91,7 @@ public:
     FunctionCall,
     Variable,
     BooleanValue,
+    PostfixExpression,
   } type;
 
   Expression(Expression::Type type) : type(type) {}
@@ -150,6 +155,17 @@ public:
   void print(std::ostream &os);
 };
 
+class PostfixExpression : public Expression {
+public:
+  std::unique_ptr<Expression> expr;
+  Operation op;
+
+  PostfixExpression(std::unique_ptr<Expression> expr, Operation op)
+      : Expression(Expression::Type::PostfixExpression), expr(std::move(expr)),
+        op(op) {}
+  void print(std::ostream &os);
+};
+
 class FunctionCall : public Expression, public Statement {
   std::string_view name;
   std::vector<std::unique_ptr<Expression>> arguments;
@@ -163,16 +179,24 @@ public:
   void print(std::ostream &os);
 };
 
-class IfStatement : public Statement {
-  std::unique_ptr<Expression> condition;
-  std::vector<std::unique_ptr<Statement>> ifTrueStmts;
-  std::optional<std::vector<std::unique_ptr<Statement>>> ifFalseStmts;
+class StatementBlock : public Printable {
+  std::vector<std::unique_ptr<Statement>> statements;
 
 public:
-  IfStatement(
-      std::unique_ptr<Expression> condition,
-      std::vector<std::unique_ptr<Statement>> ifTrueStmts,
-      std::optional<std::vector<std::unique_ptr<Statement>>> ifFalseStmts)
+  StatementBlock(std::vector<std::unique_ptr<Statement>> statements)
+      : statements(std::move(statements)) {}
+  void print(std::ostream &os);
+};
+
+class IfStatement : public Statement {
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<StatementBlock> ifTrueStmts;
+  std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts;
+
+public:
+  IfStatement(std::unique_ptr<Expression> condition,
+              std::unique_ptr<StatementBlock> ifTrueStmts,
+              std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts)
       : Statement(Statement::Type::IfStatement),
         condition(std::move(condition)), ifTrueStmts(std::move(ifTrueStmts)),
         ifFalseStmts(std::move(ifFalseStmts)) {}
@@ -194,13 +218,30 @@ public:
 
 class WhileStatement : public Statement {
   std::unique_ptr<Expression> condition;
-  std::vector<std::unique_ptr<Statement>> body;
+  std::unique_ptr<StatementBlock> body;
 
 public:
   WhileStatement(std::unique_ptr<Expression> condition,
-                 std::vector<std::unique_ptr<Statement>> body)
+                 std::unique_ptr<StatementBlock> body)
       : Statement(Statement::Type::WhileStatement),
         condition(std::move(condition)), body(std::move(body)) {}
+  void print(std::ostream &os);
+};
+
+class ForStatement : public Statement {
+  std::unique_ptr<LetStatement> declaration;
+  std::unique_ptr<Expression> condition;
+  std::unique_ptr<Expression> updater;
+  std::unique_ptr<StatementBlock> body;
+
+public:
+  ForStatement(std::unique_ptr<LetStatement> declaration,
+               std::unique_ptr<Expression> condition,
+               std::unique_ptr<Expression> updater,
+               std::unique_ptr<StatementBlock> body)
+      : Statement(Statement::Type::ForStatement),
+        declaration(std::move(declaration)), condition(std::move(condition)),
+        updater(std::move(updater)), body(std::move(body)) {}
   void print(std::ostream &os);
 };
 
@@ -227,15 +268,15 @@ class FunctionDeclaration : public Printable {
 public:
   std::string_view name;
   std::vector<std::unique_ptr<Parameter>> parameters;
-  std::vector<std::unique_ptr<Statement>> statements;
+  std::unique_ptr<StatementBlock> body;
   std::optional<std::string_view> returnType;
 
   FunctionDeclaration(std::string_view name,
                       std::vector<std::unique_ptr<Parameter>> parameters,
-                      std::vector<std::unique_ptr<Statement>> statements,
+                      std::unique_ptr<StatementBlock> body,
                       std::optional<std::string_view> returnType)
-      : name(name), parameters(std::move(parameters)),
-        statements(std::move(statements)), returnType(returnType) {}
+      : name(name), parameters(std::move(parameters)), body(std::move(body)),
+        returnType(returnType) {}
   void print(std::ostream &os);
 };
 

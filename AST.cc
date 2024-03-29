@@ -12,6 +12,12 @@ std::string operationToString(Operation op) {
     return "*";
   case Operation::Div:
     return "/";
+  case Operation::LessThan:
+    return "<";
+  case Operation::GreaterThan:
+    return ">";
+  case Operation::Increment:
+    return "++";
   }
 
   UNREACHABLE();
@@ -25,11 +31,10 @@ void printDepth(std::ostream &os, int n) {
   }
 }
 
-void Printable::printStmtBlock(
-    std::ostream &os, std::vector<std::unique_ptr<Statement>>& stmts) {
+void StatementBlock::print(std::ostream &os) {
   os << "{\n";
   depth += 2;
-  for (auto &stmt : stmts) {
+  for (auto &stmt : statements) {
     printDepth(os, depth);
     os << *stmt << ";\n";
   }
@@ -64,6 +69,10 @@ void BinaryExpression::print(std::ostream &os) {
      << *rhs << ")";
 }
 
+void PostfixExpression::print(std::ostream &os) {
+  os << "PostfixExpression(" << *expr << operationToString(op) << ")";
+}
+
 void ReturnStatement::print(std::ostream &os) {
   os << "ReturnStatement(";
   if (val.has_value()) {
@@ -73,24 +82,25 @@ void ReturnStatement::print(std::ostream &os) {
 }
 
 void WhileStatement::print(std::ostream &os) {
-  os << "While((" << *condition << ") ";
-  printStmtBlock(os, body);
-  os << ")";
+  os << "While((" << *condition << ") " << *body << ")";
 }
 
 void IfStatement::print(std::ostream &os) {
-  os << "IfStatement(" << *condition << ") ";
-  printStmtBlock(os, ifTrueStmts);
+  os << "IfStatement(" << *condition << ") " << *ifTrueStmts;
 
   if (ifFalseStmts.has_value()) {
-    os << " else ";
-    printStmtBlock(os, ifFalseStmts.value());
+    os << " else " << *ifFalseStmts.value();
   }
   os << "))";
 }
 
 void LetStatement::print(std::ostream &os) {
   os << "LetStatement(" << name << " = " << *initializer << ")";
+}
+
+void ForStatement::print(std::ostream &os) {
+  os << "ForStatement(" << *declaration << "; " << *condition << "; "
+     << *updater << ") {" << *body << "})";
 }
 
 void FunctionCall::print(std::ostream &os) {
@@ -126,8 +136,7 @@ void FunctionDeclaration::print(std::ostream &os) {
   }
   os << ") ";
 
-  printStmtBlock(os, statements);
-
+  os << *body;
   os << ")";
 }
 

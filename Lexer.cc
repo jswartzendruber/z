@@ -26,6 +26,7 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
     {TokenType::Eq, "Eq"},
     {TokenType::Minus, "Minus"},
     {TokenType::Plus, "Plus"},
+    {TokenType::PlusPlus, "PlusPlus"},
     {TokenType::Star, "Star"},
     {TokenType::Slash, "Slash"},
     {TokenType::Semicolon, "Semicolon"},
@@ -103,6 +104,7 @@ Token LexerInternal::makeIdentifierOrBoolean() {
   static const StringId returnStr = stringTable->intern("return");
   static const StringId letStr = stringTable->intern("let");
   static const StringId whileStr = stringTable->intern("while");
+  static const StringId forStr = stringTable->intern("for");
 
   if (strId == trueStr) {
     return makeToken(TokenType::TrueKeyword, str);
@@ -120,6 +122,8 @@ Token LexerInternal::makeIdentifierOrBoolean() {
     return makeToken(TokenType::LetKeyword, str);
   } else if (strId == whileStr) {
     return makeToken(TokenType::WhileKeyword, str);
+  } else if (strId == forStr) {
+    return makeToken(TokenType::ForKeyword, str);
   } else {
     return makeToken(TokenType::Identifier, str);
   }
@@ -272,6 +276,14 @@ std::optional<Token> LexerInternal::nextToken() {
     }
     return makeToken(TokenType::Slash, 1);
 
+  case '+':
+    if (index + 1 < src.length()) {
+      if (src[index + 1] == '+') {
+        return makeToken(TokenType::PlusPlus, 2);
+      }
+    }
+    return makeToken(TokenType::Plus, 1);
+
   case '(':
     return makeToken(TokenType::LParen, 1);
   case ')':
@@ -284,8 +296,6 @@ std::optional<Token> LexerInternal::nextToken() {
     return makeToken(TokenType::Eq, 1);
   case '-':
     return makeToken(TokenType::Minus, 1);
-  case '+':
-    return makeToken(TokenType::Plus, 1);
   case '*':
     return makeToken(TokenType::Star, 1);
 

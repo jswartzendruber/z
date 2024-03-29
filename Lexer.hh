@@ -41,6 +41,7 @@ enum class TokenType {
   Eq,
   Minus,
   Plus,
+  PlusPlus,
   Star,
   Slash,
   Semicolon,

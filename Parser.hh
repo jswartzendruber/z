@@ -20,12 +20,13 @@ private:
   parseFunctionDeclaration();
   std::optional<std::unique_ptr<FunctionCall>>
   parseFunctionCall(Token lhsToken);
-  std::optional<std::vector<std::unique_ptr<Statement>>> parseStatementBlock();
   std::optional<std::unique_ptr<Expression>> parseExpressionBp(int minbp);
+  std::optional<std::unique_ptr<ReturnStatement>> parseReturnStatement();
+  std::optional<std::unique_ptr<StatementBlock>> parseStatementBlock();
   std::optional<std::unique_ptr<WhileStatement>> parseWhileStatement();
-  std::optional<std::unique_ptr<Statement>> parseReturnStatement();
-  std::optional<std::unique_ptr<Statement>> parseLetStatement();
-  std::optional<std::unique_ptr<Statement>> parseIfStatement();
+  std::optional<std::unique_ptr<ForStatement>> parseForStatement();
+  std::optional<std::unique_ptr<LetStatement>> parseLetStatement();
+  std::optional<std::unique_ptr<IfStatement>> parseIfStatement();
   std::optional<std::unique_ptr<Expression>> parseExpression();
   std::optional<std::unique_ptr<Statement>> parseStatement();
   void synchronize();

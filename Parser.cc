@@ -5,39 +5,40 @@
 #include <memory>
 #include <sstream>
 
-std::optional<std::tuple<Operation, int, int>>
-infixBindingPower(TokenType type) {
-  Operation op;
-  int bpl;
-  int bpr;
-
+std::optional<std::tuple<Operation, int>> postfixBindingPower(TokenType type) {
   switch (type) {
-  case TokenType::Plus:
-    op = Operation::Add;
-    bpl = 1;
-    bpr = 2;
-    break;
-  case TokenType::Minus:
-    op = Operation::Sub;
-    bpl = 1;
-    bpr = 2;
-    break;
-  case TokenType::Star:
-    op = Operation::Mul;
-    bpl = 3;
-    bpr = 4;
-    break;
-  case TokenType::Slash:
-    bpl = 3;
-    bpr = 4;
-    op = Operation::Div;
-    break;
+  case TokenType::PlusPlus:
+    return std::make_tuple(Operation::Increment, 7);
 
   default:
     return std::nullopt;
   }
+}
 
-  return std::make_tuple(op, bpl, bpr);
+std::optional<std::tuple<Operation, int, int>>
+infixBindingPower(TokenType type) {
+  switch (type) {
+  case TokenType::Plus:
+    return std::make_tuple(Operation::Add, 1, 2);
+
+  case TokenType::Minus:
+    return std::make_tuple(Operation::Sub, 1, 2);
+
+  case TokenType::Star:
+    return std::make_tuple(Operation::Mul, 3, 4);
+
+  case TokenType::Slash:
+    return std::make_tuple(Operation::Div, 3, 4);
+
+  case TokenType::LAngleBracket:
+    return std::make_tuple(Operation::LessThan, 0, 1);
+
+  case TokenType::RAngleBracket:
+    return std::make_tuple(Operation::GreaterThan, 0, 1);
+
+  default:
+    return std::nullopt;
+  }
 }
 
 std::optional<std::unique_ptr<FunctionCall>>
@@ -150,6 +151,19 @@ Parser::parseExpressionBp(int minbp) {
     }
     auto opToken = TRY(optOpToken);
 
+    auto postfixOpt = postfixBindingPower(opToken.type);
+    if (postfixOpt.has_value()) {
+      auto postfix = postfixOpt.value();
+      Operation op = std::get<0>(postfix);
+      int lbp = std::get<1>(postfix);
+      if (lbp < minbp) {
+        break;
+      }
+      lexer->nextToken(); // Consume postfix token
+
+      lhs = std::make_unique<PostfixExpression>(std::move(lhs), op);
+    }
+
     auto optIbp = infixBindingPower(opToken.type);
     if (!optIbp.has_value()) {
       // Must not be any expression left to parse. Return what we have.
@@ -179,8 +193,7 @@ std::optional<std::unique_ptr<Expression>> Parser::parseExpression() {
   return parseExpressionBp(0);
 }
 
-std::optional<std::vector<std::unique_ptr<Statement>>>
-Parser::parseStatementBlock() {
+std::optional<std::unique_ptr<StatementBlock>> Parser::parseStatementBlock() {
   EXPECT(TokenType::LCurly);
 
   std::vector<std::unique_ptr<Statement>> body = {};
@@ -207,10 +220,31 @@ Parser::parseStatementBlock() {
   }
 
   EXPECT(TokenType::RCurly);
-  return body;
+  return std::make_unique<StatementBlock>(std::move(body));
 }
 
-std::optional<std::unique_ptr<Statement>> Parser::parseIfStatement() {
+std::optional<std::unique_ptr<ForStatement>> Parser::parseForStatement() {
+  EXPECT(TokenType::ForKeyword);
+  EXPECT(TokenType::LParen);
+  auto declaration = TRY(parseLetStatement());
+  // parseLetStatement() consumes the semicolon after
+
+  auto condition = TRY(parseExpression());
+  EXPECT(TokenType::Semicolon);
+
+  auto updater = TRY(parseExpression());
+  // No trailing semicolon here
+
+  EXPECT(TokenType::RParen);
+
+  auto body = TRY(parseStatementBlock());
+
+  return std::make_unique<ForStatement>(std::move(declaration),
+                                        std::move(condition),
+                                        std::move(updater), std::move(body));
+}
+
+std::optional<std::unique_ptr<IfStatement>> Parser::parseIfStatement() {
   EXPECT(TokenType::IfKeyword);
   EXPECT(TokenType::LParen);
   auto condition = TRY(parseExpression());
@@ -218,8 +252,7 @@ std::optional<std::unique_ptr<Statement>> Parser::parseIfStatement() {
 
   auto stmtsIfTrue = TRY(parseStatementBlock());
 
-  std::optional<std::vector<std::unique_ptr<Statement>>> stmtsIfFalse =
-      std::nullopt;
+  std::optional<std::unique_ptr<StatementBlock>> stmtsIfFalse = std::nullopt;
   auto peek = TRY(lexer->peekToken());
   if (peek.type == TokenType::ElseKeyword) {
     EXPECT(TokenType::ElseKeyword);
@@ -230,7 +263,7 @@ std::optional<std::unique_ptr<Statement>> Parser::parseIfStatement() {
       std::move(condition), std::move(stmtsIfTrue), std::move(stmtsIfFalse));
 }
 
-std::optional<std::unique_ptr<Statement>> Parser::parseReturnStatement() {
+std::optional<std::unique_ptr<ReturnStatement>> Parser::parseReturnStatement() {
   EXPECT(TokenType::ReturnKeyword);
 
   std::optional<std::unique_ptr<Expression>> expr;
@@ -246,7 +279,7 @@ std::optional<std::unique_ptr<Statement>> Parser::parseReturnStatement() {
   return std::make_unique<ReturnStatement>(std::move(expr));
 }
 
-std::optional<std::unique_ptr<Statement>> Parser::parseLetStatement() {
+std::optional<std::unique_ptr<LetStatement>> Parser::parseLetStatement() {
   EXPECT(TokenType::LetKeyword);
   auto name = EXPECT(TokenType::Identifier).src;
 
@@ -288,6 +321,8 @@ std::optional<std::unique_ptr<Statement>> Parser::parseStatement() {
     return TRY(parseLetStatement());
   } else if (peekToken.type == TokenType::WhileKeyword) {
     return TRY(parseWhileStatement());
+  } else if (peekToken.type == TokenType::ForKeyword) {
+    return TRY(parseForStatement());
   } else if (peekToken.type == TokenType::Identifier) {
     auto lhsToken = EXPECT(TokenType::Identifier);
     auto fn = TRY(parseFunctionCall(lhsToken));
