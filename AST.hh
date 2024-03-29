@@ -1,11 +1,12 @@
 #ifndef AST_HH
 #define AST_HH
 
-#include "BumpAllocator.hh"
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string_view>
+#include <vector>
 
 // Acts like the rust '?' operator. Returns early from the function
 // if the optional is none, otherwise assigns the optional to 'name'
@@ -16,7 +17,7 @@
     if (!val.has_value()) {                                                    \
       return std::nullopt;                                                     \
     }                                                                          \
-    val.value();                                                               \
+    std::move(val.value());                                                    \
   })
 
 // Looks at the next token. IF it is what is expected, consumes the
@@ -41,7 +42,6 @@
     lexer->nextToken().value();                                                \
   })
 
-template <typename T> class LinkedList;
 class Statement;
 
 class Printable {
@@ -50,54 +50,10 @@ public:
   virtual void print(std::ostream &os) = 0;
   friend std::ostream &operator<<(std::ostream &os, Printable &node);
 
-  void printStmtBlock(std::ostream &os, LinkedList<Statement *> stmts);
-
+  void printStmtBlock(std::ostream &os,
+                      std::vector<std::unique_ptr<Statement>> &stmts);
+  virtual ~Printable() = default;
   Printable() {}
-};
-
-template <typename T> class LinkedList {
-public:
-  struct Node {
-    T data;
-    Node *nxt;
-
-    Node(T data, Node *nxt = nullptr) : data(data), nxt(nxt) {}
-
-    T value() { return data; }
-    Node *next() { return nxt; }
-  };
-
-private:
-  BumpAllocator<> *allocator;
-  Node *head;
-  Node *tail;
-  int size;
-
-public:
-  void push_back(T val) {
-    Node *node = allocator->allocate(Node(val));
-    if (tail) {
-      tail->nxt = node;
-      tail = node;
-    } else {
-      head = node;
-      tail = node;
-    }
-    size++;
-  }
-
-  LinkedList(BumpAllocator<> *allocator)
-      : allocator(allocator), head(nullptr), tail(nullptr), size(0) {}
-
-  LinkedList(BumpAllocator<> *allocator, T val)
-      : allocator(allocator), head(nullptr), tail(nullptr), size(0) {
-    push_back(val);
-  }
-
-  Node *front() { return head; }
-  Node *back() { return tail; }
-  Node *next() { return head->next(); }
-  int len() { return size; }
 };
 
 enum class Operation {
@@ -117,6 +73,7 @@ public:
   } type;
 
   Statement(Statement::Type type) : type(type) {}
+  virtual ~Statement() = default;
 };
 
 class Expression : public Printable {
@@ -132,6 +89,7 @@ public:
   } type;
 
   Expression(Expression::Type type) : type(type) {}
+  virtual ~Expression() = default;
 };
 
 class Variable : public Expression {
@@ -180,61 +138,65 @@ public:
 
 class BinaryExpression : public Expression {
 public:
-  Expression *lhs;
-  Expression *rhs;
+  std::unique_ptr<Expression> lhs;
+  std::unique_ptr<Expression> rhs;
   Operation op;
 
-  BinaryExpression(Operation op, Expression *lhs, Expression *rhs)
-      : Expression(Expression::Type::BinaryExpression), lhs(lhs), rhs(rhs),
-        op(op) {}
+  BinaryExpression(Operation op, std::unique_ptr<Expression> lhs,
+                   std::unique_ptr<Expression> rhs)
+      : Expression(Expression::Type::BinaryExpression), lhs(std::move(lhs)),
+        rhs(std::move(rhs)), op(op) {}
   void print(std::ostream &os);
-  virtual ~BinaryExpression() = default;
 };
 
 class FunctionCall : public Expression, public Statement {
   std::string_view name;
-  LinkedList<Expression *> arguments;
+  std::vector<std::unique_ptr<Expression>> arguments;
 
 public:
-  FunctionCall(std::string_view name, LinkedList<Expression *> arguments)
+  FunctionCall(std::string_view name,
+               std::vector<std::unique_ptr<Expression>> arguments)
       : Expression(Expression::Type::FunctionCall),
         Statement(Statement::Type::FunctionCall), name(name),
-        arguments(arguments) {}
+        arguments(std::move(arguments)) {}
   void print(std::ostream &os);
 };
 
 class IfStatement : public Statement {
-  Expression *condition;
-  LinkedList<Statement *> ifTrueStmts;
-  std::optional<LinkedList<Statement *>> ifFalseStmts;
+  std::unique_ptr<Expression> condition;
+  std::vector<std::unique_ptr<Statement>> ifTrueStmts;
+  std::optional<std::vector<std::unique_ptr<Statement>>> ifFalseStmts;
 
 public:
-  IfStatement(Expression *condition, LinkedList<Statement *> ifTrueStmts,
-              std::optional<LinkedList<Statement *>> ifFalseStmts)
-      : Statement(Statement::Type::IfStatement), condition(condition),
-        ifTrueStmts(ifTrueStmts), ifFalseStmts(ifFalseStmts) {}
+  IfStatement(
+      std::unique_ptr<Expression> condition,
+      std::vector<std::unique_ptr<Statement>> ifTrueStmts,
+      std::optional<std::vector<std::unique_ptr<Statement>>> ifFalseStmts)
+      : Statement(Statement::Type::IfStatement),
+        condition(std::move(condition)), ifTrueStmts(std::move(ifTrueStmts)),
+        ifFalseStmts(std::move(ifFalseStmts)) {}
   void print(std::ostream &os);
 };
 
 class LetStatement : public Statement {
   std::string_view name;
   std::optional<std::string_view> type;
-  Expression *initializer;
+  std::unique_ptr<Expression> initializer;
 
 public:
   LetStatement(std::string_view name, std::optional<std::string_view> type,
-               Expression *initializer)
+               std::unique_ptr<Expression> initializer)
       : Statement(Statement::Type::LetStatement), name(name), type(type),
-        initializer(initializer) {}
+        initializer(std::move(initializer)) {}
   void print(std::ostream &os);
 };
 
 class ReturnStatement : public Statement {
-  std::optional<Expression *> val;
+  std::optional<std::unique_ptr<Expression>> val;
 
 public:
-  ReturnStatement(std::optional<Expression *> val)
-      : Statement(Statement::Type::ReturnStatement), val(val) {}
+  ReturnStatement(std::optional<std::unique_ptr<Expression>> val)
+      : Statement(Statement::Type::ReturnStatement), val(std::move(val)) {}
   void print(std::ostream &os);
 };
 
@@ -251,23 +213,25 @@ public:
 class FunctionDeclaration : public Printable {
 public:
   std::string_view name;
-  LinkedList<Parameter *> parameters;
-  LinkedList<Statement *> statements;
+  std::vector<std::unique_ptr<Parameter>> parameters;
+  std::vector<std::unique_ptr<Statement>> statements;
   std::optional<std::string_view> returnType;
 
-  FunctionDeclaration(std::string_view name, LinkedList<Parameter *> parameters,
-                      LinkedList<Statement *> statements,
+  FunctionDeclaration(std::string_view name,
+                      std::vector<std::unique_ptr<Parameter>> parameters,
+                      std::vector<std::unique_ptr<Statement>> statements,
                       std::optional<std::string_view> returnType)
-      : name(name), parameters(parameters), statements(statements),
-        returnType(returnType) {}
+      : name(name), parameters(std::move(parameters)),
+        statements(std::move(statements)), returnType(returnType) {}
   void print(std::ostream &os);
 };
 
 class Program : public Printable {
 public:
-  LinkedList<FunctionDeclaration *> functions;
+  std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
-  Program(LinkedList<FunctionDeclaration *> functions) : functions(functions) {}
+  Program(std::vector<std::unique_ptr<FunctionDeclaration>> functions)
+      : functions(std::move(functions)) {}
   void print(std::ostream &os);
 };
 
