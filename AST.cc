@@ -1,5 +1,6 @@
 #include "AST.hh"
 #include "Lexer.hh"
+#include <memory>
 
 std::string operationToString(Operation op) {
   switch (op) {
@@ -24,15 +25,13 @@ void printDepth(std::ostream &os, int n) {
   }
 }
 
-void Printable::printStmtBlock(std::ostream &os,
-                               LinkedList<Statement *> stmts) {
+void Printable::printStmtBlock(
+    std::ostream &os, std::vector<std::unique_ptr<Statement>>& stmts) {
   os << "{\n";
-  auto currStmt = stmts.front();
   depth += 2;
-  while (currStmt != nullptr) {
+  for (auto &stmt : stmts) {
     printDepth(os, depth);
-    os << *currStmt->value() << ";\n";
-    currStmt = currStmt->next();
+    os << *stmt << ";\n";
   }
   depth -= 2;
   printDepth(os, depth);
@@ -85,8 +84,7 @@ void IfStatement::print(std::ostream &os) {
 
   if (ifFalseStmts.has_value()) {
     os << " else ";
-    auto stmts = ifFalseStmts.value();
-    printStmtBlock(os, stmts);
+    printStmtBlock(os, ifFalseStmts.value());
   }
   os << "))";
 }
@@ -97,15 +95,13 @@ void LetStatement::print(std::ostream &os) {
 
 void FunctionCall::print(std::ostream &os) {
   os << "FunctionCall(" << name << "(";
-  auto curr = arguments.front();
   int i = 0;
-  while (curr != nullptr) {
+  for (auto &arg : arguments) {
     if (i > 0) {
       os << " ";
     }
-    os << *curr->value();
+    os << *arg;
     i++;
-    curr = curr->next();
   }
   os << "))";
 }
@@ -117,12 +113,10 @@ void Parameter::print(std::ostream &os) {
 void FunctionDeclaration::print(std::ostream &os) {
   printDepth(os, depth);
   os << "FunctionDeclaration(" << name << " ";
-  auto curr = parameters.front();
   int i = 0;
-  while (curr != nullptr) {
-    os << *curr->value() << " ";
+  for (auto &param : parameters) {
+    os << *param << " ";
     i++;
-    curr = curr->next();
   }
 
   if (returnType.has_value()) {
@@ -140,10 +134,8 @@ void FunctionDeclaration::print(std::ostream &os) {
 void Program::print(std::ostream &os) {
   os << "Program(\n";
   depth += 2;
-  auto curr = functions.front();
-  while (curr != nullptr) {
-    os << *curr->value() << "\n";
-    curr = curr->next();
+  for (auto &fn : functions) {
+    os << *fn << "\n";
   }
   os << ")\n";
   depth -= 2;

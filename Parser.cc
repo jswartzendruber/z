@@ -2,6 +2,7 @@
 #include "AST.hh"
 #include "Lexer.hh"
 #include <charconv>
+#include <memory>
 #include <sstream>
 
 std::optional<std::tuple<Operation, int, int>>
@@ -39,18 +40,19 @@ infixBindingPower(TokenType type) {
   return std::make_tuple(op, bpl, bpr);
 }
 
-std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
+std::optional<std::unique_ptr<FunctionCall>>
+Parser::parseFunctionCall(Token lhsToken) {
   EXPECT(TokenType::LParen);
 
-  auto arguments = LinkedList<Expression *>(allocator);
+  std::vector<std::unique_ptr<Expression>> arguments = {};
 
   // Collect arguments until we hit closing ')'
   std::optional<Token> token;
   while ((token = lexer->peekToken()) &&
          token.value().type != TokenType::RParen) {
-    std::optional<Expression *> arg = parseExpression();
+    std::optional<std::unique_ptr<Expression>> arg = parseExpression();
     if (arg.has_value()) {
-      arguments.push_back(arg.value());
+      arguments.push_back(std::move(arg.value()));
       auto peek = TRY(lexer->peekToken());
 
       if (peek.type == TokenType::RParen) {
@@ -71,10 +73,11 @@ std::optional<FunctionCall *> Parser::parseFunctionCall(Token lhsToken) {
   }
   EXPECT(TokenType::RParen);
 
-  return allocator->allocate(FunctionCall(lhsToken.src, arguments));
+  return std::make_unique<FunctionCall>(lhsToken.src, std::move(arguments));
 }
 
-std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
+std::optional<std::unique_ptr<Expression>>
+Parser::parseExpressionBp(int minbp) {
   auto lhsToken = TRY(lexer->nextToken());
   bool negative = false;
   if (lhsToken.type == TokenType::Minus) {
@@ -86,14 +89,14 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
   // literal.
   std::optional<Token> peekLparen;
 
-  Expression *lhs;
+  std::unique_ptr<Expression> lhs;
   switch (lhsToken.type) {
   case TokenType::TrueKeyword:
-    lhs = allocator->allocate(BooleanValue(true));
+    lhs = std::make_unique<BooleanValue>(true);
     break;
 
   case TokenType::FalseKeyword:
-    lhs = allocator->allocate(BooleanValue(false));
+    lhs = std::make_unique<BooleanValue>(false);
     break;
 
   case TokenType::IntegerLiteral:
@@ -103,7 +106,7 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     if (negative) {
       lhsIntValue *= -1;
     }
-    lhs = allocator->allocate(IntegerValue(lhsIntValue));
+    lhs = std::make_unique<IntegerValue>(lhsIntValue);
     break;
 
   case TokenType::FloatLiteral:
@@ -113,7 +116,7 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     if (negative) {
       lhsFloatValue *= -1;
     }
-    lhs = allocator->allocate(FloatValue(lhsFloatValue));
+    lhs = std::make_unique<FloatValue>(lhsFloatValue);
     break;
 
   case TokenType::Identifier:
@@ -122,14 +125,14 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     peekLparen = lexer->peekToken();
     if (peekLparen.has_value() &&
         peekLparen.value().type == TokenType::LParen) {
-      return parseFunctionCall(lhsToken);
+      return TRY(parseFunctionCall(lhsToken));
     } else {
-      lhs = allocator->allocate(Variable(lhsToken.src));
+      lhs = std::make_unique<Variable>(lhsToken.src);
     }
     break;
 
   case TokenType::StringLiteral:
-    lhs = allocator->allocate(StringValue(lhsToken.src));
+    lhs = std::make_unique<StringValue>(lhsToken.src);
     break;
 
   default:
@@ -165,28 +168,30 @@ std::optional<Expression *> Parser::parseExpressionBp(int minbp) {
     lexer->nextToken(); // Consume operation token
     auto rhs = TRY(parseExpressionBp(rbp));
 
-    lhs = allocator->allocate(BinaryExpression(op, lhs, rhs));
+    lhs =
+        std::make_unique<BinaryExpression>(op, std::move(lhs), std::move(rhs));
   }
 
   return lhs;
 }
 
-std::optional<Expression *> Parser::parseExpression() {
+std::optional<std::unique_ptr<Expression>> Parser::parseExpression() {
   return parseExpressionBp(0);
 }
 
-std::optional<LinkedList<Statement *>> Parser::parseStatementBlock() {
+std::optional<std::vector<std::unique_ptr<Statement>>>
+Parser::parseStatementBlock() {
   EXPECT(TokenType::LCurly);
 
-  auto body = LinkedList<Statement *>(allocator);
+  std::vector<std::unique_ptr<Statement>> body = {};
 
   std::optional<Token> token;
   while ((token = lexer->peekToken()) &&
          token.value().type != TokenType::RCurly) {
-    std::optional<Statement *> stmt = parseStatement();
+    std::optional<std::unique_ptr<Statement>> stmt = parseStatement();
 
     if (stmt.has_value()) {
-      body.push_back(stmt.value());
+      body.push_back(std::move(stmt.value()));
     } else if (recoveryMode) {
       // Try to find a semicolon and continue parsing
       synchronize();
@@ -205,7 +210,7 @@ std::optional<LinkedList<Statement *>> Parser::parseStatementBlock() {
   return body;
 }
 
-std::optional<IfStatement *> Parser::parseIfStatement() {
+std::optional<std::unique_ptr<Statement>> Parser::parseIfStatement() {
   EXPECT(TokenType::IfKeyword);
   EXPECT(TokenType::LParen);
   auto condition = TRY(parseExpression());
@@ -213,20 +218,22 @@ std::optional<IfStatement *> Parser::parseIfStatement() {
 
   auto stmtsIfTrue = TRY(parseStatementBlock());
 
-  std::optional<LinkedList<Statement *>> stmtsIfFalse = std::nullopt;
+  std::optional<std::vector<std::unique_ptr<Statement>>> stmtsIfFalse =
+      std::nullopt;
   auto peek = TRY(lexer->peekToken());
   if (peek.type == TokenType::ElseKeyword) {
     EXPECT(TokenType::ElseKeyword);
     stmtsIfFalse = TRY(parseStatementBlock());
   }
 
-  return allocator->allocate(IfStatement(condition, stmtsIfTrue, stmtsIfFalse));
+  return std::make_unique<IfStatement>(
+      std::move(condition), std::move(stmtsIfTrue), std::move(stmtsIfFalse));
 }
 
-std::optional<ReturnStatement *> Parser::parseReturnStatement() {
+std::optional<std::unique_ptr<Statement>> Parser::parseReturnStatement() {
   EXPECT(TokenType::ReturnKeyword);
 
-  std::optional<Expression *> expr;
+  std::optional<std::unique_ptr<Expression>> expr;
   auto peek = TRY(lexer->peekToken());
   if (peek.type == TokenType::Semicolon) {
     expr = std::nullopt;
@@ -236,10 +243,10 @@ std::optional<ReturnStatement *> Parser::parseReturnStatement() {
 
   EXPECT(TokenType::Semicolon);
 
-  return allocator->allocate(ReturnStatement(expr));
+  return std::make_unique<ReturnStatement>(std::move(expr));
 }
 
-std::optional<LetStatement *> Parser::parseLetStatement() {
+std::optional<std::unique_ptr<Statement>> Parser::parseLetStatement() {
   EXPECT(TokenType::LetKeyword);
   auto name = EXPECT(TokenType::Identifier).src;
 
@@ -254,10 +261,10 @@ std::optional<LetStatement *> Parser::parseLetStatement() {
   auto initializer = TRY(parseExpression());
   EXPECT(TokenType::Semicolon);
 
-  return allocator->allocate(LetStatement(name, type, initializer));
+  return std::make_unique<LetStatement>(name, type, std::move(initializer));
 }
 
-std::optional<WhileStatement *> Parser::parseWhileStatement() {
+std::optional<std::unique_ptr<WhileStatement>> Parser::parseWhileStatement() {
   EXPECT(TokenType::WhileKeyword);
 
   EXPECT(TokenType::LParen);
@@ -266,10 +273,11 @@ std::optional<WhileStatement *> Parser::parseWhileStatement() {
 
   auto body = TRY(parseStatementBlock());
 
-  return allocator->allocate(WhileStatement(condition, body));
+  return std::make_unique<WhileStatement>(std::move(condition),
+                                          std::move(body));
 }
 
-std::optional<Statement *> Parser::parseStatement() {
+std::optional<std::unique_ptr<Statement>> Parser::parseStatement() {
   auto peekToken = TRY(lexer->peekToken());
 
   if (peekToken.type == TokenType::IfKeyword) {
@@ -282,7 +290,7 @@ std::optional<Statement *> Parser::parseStatement() {
     return TRY(parseWhileStatement());
   } else if (peekToken.type == TokenType::Identifier) {
     auto lhsToken = EXPECT(TokenType::Identifier);
-    auto fn = (Statement *)TRY(parseFunctionCall(lhsToken));
+    auto fn = TRY(parseFunctionCall(lhsToken));
     EXPECT(TokenType::Semicolon);
     return fn;
   } else {
@@ -290,13 +298,14 @@ std::optional<Statement *> Parser::parseStatement() {
   }
 }
 
-std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
+std::optional<std::unique_ptr<FunctionDeclaration>>
+Parser::parseFunctionDeclaration() {
   EXPECT(TokenType::FnKeyword);
   auto name = EXPECT(TokenType::Identifier);
   EXPECT(TokenType::LParen);
 
   // collect parameters
-  auto parameters = LinkedList<Parameter *>(allocator);
+  std::vector<std::unique_ptr<Parameter>> parameters = {};
 
   // Collect parameters until we hit closing ')'
   std::optional<Token> token;
@@ -306,8 +315,8 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
     EXPECT(TokenType::Colon);
     auto p_type = EXPECT(TokenType::Identifier);
 
-    parameters.push_back(
-        allocator->allocate(Parameter(p_name.src, p_type.src)));
+    parameters.push_back(std::move(
+        std::make_unique<Parameter>(Parameter(p_name.src, p_type.src))));
 
     auto peek = TRY(lexer->peekToken());
     if (peek.type == TokenType::RParen) {
@@ -336,19 +345,19 @@ std::optional<FunctionDeclaration *> Parser::parseFunctionDeclaration() {
 
   auto body = TRY(parseStatementBlock());
 
-  return allocator->allocate(
-      FunctionDeclaration(name.src, parameters, body, returnType));
+  return std::make_unique<FunctionDeclaration>(name.src, std::move(parameters),
+                                               std::move(body), returnType);
 }
 
-std::optional<Program *> Parser::parse() {
-  auto functions = LinkedList<FunctionDeclaration *>(allocator);
+std::optional<Program> Parser::parse() {
+  std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
   while (lexer->peekToken().has_value()) {
     auto fn = TRY(parseFunctionDeclaration());
-    functions.push_back(fn);
+    functions.push_back(std::move(fn));
   }
 
-  return allocator->allocate(Program(functions));
+  return std::make_optional<Program>(std::move(functions));
 }
 
 /* Consumes tokens until we after we reach a semicolon. Then we should be able

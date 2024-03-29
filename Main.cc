@@ -38,8 +38,7 @@ int main(int argc, char **argv) {
     auto lexer = Lexer(code, &stringTable, &errorReporter);
 
     try {
-      auto allocator = BumpAllocator();
-      auto parser = Parser(&allocator, &lexer, &errorReporter);
+      auto parser = Parser(&lexer, &errorReporter);
       auto ast = parser.parse();
 
       if (parser.anyErrors()) {
@@ -47,7 +46,7 @@ int main(int argc, char **argv) {
       }
 
       if (ast.has_value()) {
-        std::cout << *ast.value();
+        std::cout << ast.value();
       }
     } catch (UnclosedDelimiter ud) {
       errorReporter.report("unclosed delimiter", ud.line);
