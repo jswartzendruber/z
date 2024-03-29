@@ -5,10 +5,25 @@
 #include <memory>
 #include <sstream>
 
-std::optional<std::tuple<Operation, int>> postfixBindingPower(TokenType type) {
+std::optional<std::tuple<UnaryOperation, int>>
+prefixBindingPower(TokenType type) {
+  switch (type) {
+  case TokenType::Plus:
+    return std::make_tuple(UnaryOperation::Positive, 5);
+
+  case TokenType::Minus:
+    return std::make_tuple(UnaryOperation::Negative, 5);
+
+  default:
+    return std::nullopt;
+  }
+}
+
+std::optional<std::tuple<PostfixOperation, int>>
+postfixBindingPower(TokenType type) {
   switch (type) {
   case TokenType::PlusPlus:
-    return std::make_tuple(Operation::Increment, 7);
+    return std::make_tuple(PostfixOperation::Increment, 7);
 
   default:
     return std::nullopt;
@@ -80,18 +95,30 @@ Parser::parseFunctionCall(Token lhsToken) {
 std::optional<std::unique_ptr<Expression>>
 Parser::parseExpressionBp(int minbp) {
   auto lhsToken = TRY(lexer->nextToken());
-  bool negative = false;
-  if (lhsToken.type == TokenType::Minus) {
-    negative = true;
-    lhsToken = TRY(lexer->nextToken());
-  }
 
   // We may use this to check for a function call if the lhsToken is a string
   // literal.
   std::optional<Token> peekLparen;
 
+  // May be used to parse unary expressions like +2 or -(2 + 4)
+  std::tuple<UnaryOperation, int> prefixBp;
+
   std::unique_ptr<Expression> lhs;
   switch (lhsToken.type) {
+  case TokenType::Plus:
+    prefixBp = TRY(prefixBindingPower(lhsToken.type));
+    lhs = std::make_unique<UnaryExpression>(
+        std::move(TRY(parseExpressionBp(std::get<1>(prefixBp)))),
+        UnaryOperation::Positive);
+    break;
+
+  case TokenType::Minus:
+    prefixBp = TRY(prefixBindingPower(lhsToken.type));
+    lhs = std::make_unique<UnaryExpression>(
+        std::move(TRY(parseExpressionBp(std::get<1>(prefixBp)))),
+        UnaryOperation::Negative);
+    break;
+
   case TokenType::TrueKeyword:
     lhs = std::make_unique<BooleanValue>(true);
     break;
@@ -104,9 +131,6 @@ Parser::parseExpressionBp(int minbp) {
     int64_t lhsIntValue;
     std::from_chars(lhsToken.src.data(),
                     lhsToken.src.data() + lhsToken.src.size(), lhsIntValue);
-    if (negative) {
-      lhsIntValue *= -1;
-    }
     lhs = std::make_unique<IntegerValue>(lhsIntValue);
     break;
 
@@ -114,9 +138,6 @@ Parser::parseExpressionBp(int minbp) {
     double lhsFloatValue;
     std::from_chars(lhsToken.src.data(),
                     lhsToken.src.data() + lhsToken.src.size(), lhsFloatValue);
-    if (negative) {
-      lhsFloatValue *= -1;
-    }
     lhs = std::make_unique<FloatValue>(lhsFloatValue);
     break;
 
@@ -154,14 +175,14 @@ Parser::parseExpressionBp(int minbp) {
     auto postfixOpt = postfixBindingPower(opToken.type);
     if (postfixOpt.has_value()) {
       auto postfix = postfixOpt.value();
-      Operation op = std::get<0>(postfix);
       int lbp = std::get<1>(postfix);
       if (lbp < minbp) {
         break;
       }
       lexer->nextToken(); // Consume postfix token
 
-      lhs = std::make_unique<PostfixExpression>(std::move(lhs), op);
+      lhs = std::make_unique<PostfixExpression>(std::move(lhs),
+                                                std::get<0>(postfix));
     }
 
     auto optIbp = infixBindingPower(opToken.type);

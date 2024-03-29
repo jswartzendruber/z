@@ -56,6 +56,15 @@ public:
   Printable() {}
 };
 
+enum class PostfixOperation {
+  Increment,
+};
+
+enum class UnaryOperation {
+  Positive,
+  Negative,
+};
+
 enum class Operation {
   Add,
   Sub,
@@ -63,7 +72,6 @@ enum class Operation {
   Div,
   LessThan,
   GreaterThan,
-  Increment,
 };
 
 class Statement : public Printable {
@@ -92,6 +100,7 @@ public:
     Variable,
     BooleanValue,
     PostfixExpression,
+    UnaryExpression,
   } type;
 
   Expression(Expression::Type type) : type(type) {}
@@ -158,10 +167,21 @@ public:
 class PostfixExpression : public Expression {
 public:
   std::unique_ptr<Expression> expr;
-  Operation op;
+  PostfixOperation op;
 
-  PostfixExpression(std::unique_ptr<Expression> expr, Operation op)
+  PostfixExpression(std::unique_ptr<Expression> expr, PostfixOperation op)
       : Expression(Expression::Type::PostfixExpression), expr(std::move(expr)),
+        op(op) {}
+  void print(std::ostream &os);
+};
+
+class UnaryExpression : public Expression {
+public:
+  std::unique_ptr<Expression> expr;
+  UnaryOperation op;
+
+  UnaryExpression(std::unique_ptr<Expression> expr, UnaryOperation op)
+      : Expression(Expression::Type::UnaryExpression), expr(std::move(expr)),
         op(op) {}
   void print(std::ostream &os);
 };

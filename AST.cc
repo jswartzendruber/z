@@ -2,6 +2,26 @@
 #include "Lexer.hh"
 #include <memory>
 
+std::string postfixOperationToString(PostfixOperation op) {
+  switch (op) {
+  case PostfixOperation::Increment:
+    return "++";
+  }
+
+  UNREACHABLE();
+}
+
+std::string unaryOperationToString(UnaryOperation op) {
+  switch (op) {
+  case UnaryOperation::Positive:
+    return "+";
+  case UnaryOperation::Negative:
+    return "-";
+  }
+
+  UNREACHABLE();
+}
+
 std::string operationToString(Operation op) {
   switch (op) {
   case Operation::Add:
@@ -16,8 +36,6 @@ std::string operationToString(Operation op) {
     return "<";
   case Operation::GreaterThan:
     return ">";
-  case Operation::Increment:
-    return "++";
   }
 
   UNREACHABLE();
@@ -70,7 +88,11 @@ void BinaryExpression::print(std::ostream &os) {
 }
 
 void PostfixExpression::print(std::ostream &os) {
-  os << "PostfixExpression(" << *expr << operationToString(op) << ")";
+  os << "PostfixExpression(" << *expr << postfixOperationToString(op) << ")";
+}
+
+void UnaryExpression::print(std::ostream &os) {
+  os << "UnaryExpression(" << unaryOperationToString(op) << *expr << ")";
 }
 
 void ReturnStatement::print(std::ostream &os) {
