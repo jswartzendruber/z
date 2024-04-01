@@ -19,6 +19,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     list(APPEND COMPILER_WARNINGS
         "-fsanitize=address"
         "-fno-omit-frame-pointer"
+        "-g"
     )
 endif()
 
