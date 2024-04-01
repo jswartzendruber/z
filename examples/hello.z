@@ -1,7 +1,8 @@
 // This is a single line comment!
 /* This is a multi
    line comment! */
-fn id(a: int) {
+fn id(a: int) -> int {
+  let test: i64 = 10;
   for (let i = 0; i < 10; i++) {
     let b = -4 * 4 < 7 - 2;
   }

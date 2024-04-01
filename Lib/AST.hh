@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 // Acts like the rust '?' operator. Returns early from the function
@@ -291,12 +292,18 @@ public:
   std::unique_ptr<StatementBlock> body;
   std::optional<std::string_view> returnType;
 
-  FunctionDeclaration(std::string_view name,
-                      std::vector<std::unique_ptr<Parameter>> parameters,
-                      std::unique_ptr<StatementBlock> body,
-                      std::optional<std::string_view> returnType)
+  // Contains variable type declarations, parameter declarations.
+  std::unordered_map<std::string_view, std::optional<std::string_view>>
+      symbolTable;
+
+  FunctionDeclaration(
+      std::string_view name, std::vector<std::unique_ptr<Parameter>> parameters,
+      std::unique_ptr<StatementBlock> body,
+      std::optional<std::string_view> returnType,
+      std::unordered_map<std::string_view, std::optional<std::string_view>>
+          symbolTable)
       : name(name), parameters(std::move(parameters)), body(std::move(body)),
-        returnType(returnType) {}
+        returnType(returnType), symbolTable(std::move(symbolTable)) {}
   void print(std::ostream &os);
 };
 
@@ -304,8 +311,14 @@ class Program : public Printable {
 public:
   std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
-  Program(std::vector<std::unique_ptr<FunctionDeclaration>> functions)
-      : functions(std::move(functions)) {}
+  // Contains function type declarations
+  std::unordered_map<std::string_view, std::optional<std::string_view>>
+      symbolTable;
+
+  Program(std::vector<std::unique_ptr<FunctionDeclaration>> functions,
+          std::unordered_map<std::string_view, std::optional<std::string_view>>
+              symbolTable)
+      : functions(std::move(functions)), symbolTable(std::move(symbolTable)) {}
   void print(std::ostream &os);
 };
 

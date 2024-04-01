@@ -1,3 +1,4 @@
+#include "Lib/AST.hh"
 #include "Lib/ErrorReporter.hh"
 #include "Lib/Parser.hh"
 #include <fstream>
@@ -46,6 +47,30 @@ int main(int argc, char **argv) {
 
     if (ast.has_value()) {
       std::cout << ast.value();
+    }
+
+    for (auto &fn : ast->functions) {
+      std::cout << fn->name << " types:\n";
+      for (const auto &elem : fn->symbolTable) {
+        std::cout << "  " << elem.first << " -> ";
+        if (elem.second.has_value()) {
+          std::cout << elem.second.value();
+        } else {
+          std::cout << "Undeclared";
+        }
+        std::cout << "\n";
+      }
+    }
+
+    std::cout << "function return types:\n";
+    for (const auto &elem : ast->symbolTable) {
+      std::cout << "  " << elem.first << " -> ";
+      if (elem.second.has_value()) {
+        std::cout << elem.second.value();
+      } else {
+        std::cout << "Undeclared";
+      }
+      std::cout << "\n";
     }
   }
 

@@ -5,6 +5,14 @@
 #include <memory>
 #include <sstream>
 
+void Parser::pushEnvironment(
+    std::unordered_map<std::string_view, std::optional<std::string_view>>
+        *newTable) {
+  environment.push(newTable);
+}
+
+void Parser::popEnvironment() { return environment.pop(); }
+
 std::optional<std::tuple<UnaryOperation, int>>
 prefixBindingPower(TokenType type) {
   switch (type) {
@@ -315,6 +323,8 @@ std::optional<std::unique_ptr<LetStatement>> Parser::parseLetStatement() {
   auto initializer = TRY(parseExpression());
   EXPECT(TokenType::Semicolon);
 
+  (*environment.top())[name] = type;
+
   return std::make_unique<LetStatement>(name, type, std::move(initializer));
 }
 
@@ -360,6 +370,10 @@ Parser::parseFunctionDeclaration() {
   auto name = EXPECT(TokenType::Identifier);
   EXPECT(TokenType::LParen);
 
+  std::unordered_map<std::string_view, std::optional<std::string_view>>
+      symbolTable;
+  pushEnvironment(&symbolTable);
+
   // collect parameters
   std::vector<std::unique_ptr<Parameter>> parameters = {};
 
@@ -371,6 +385,7 @@ Parser::parseFunctionDeclaration() {
     EXPECT(TokenType::Colon);
     auto p_type = EXPECT(TokenType::Identifier);
 
+    symbolTable[p_name.src] = p_type.src;
     parameters.push_back(
         std::make_unique<Parameter>(Parameter(p_name.src, p_type.src)));
 
@@ -401,19 +416,27 @@ Parser::parseFunctionDeclaration() {
 
   auto body = TRY(parseStatementBlock());
 
+  popEnvironment();
+
   return std::make_unique<FunctionDeclaration>(name.src, std::move(parameters),
-                                               std::move(body), returnType);
+                                               std::move(body), returnType,
+                                               std::move(symbolTable));
 }
 
 std::optional<Program> Parser::parse() {
   std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
+  std::unordered_map<std::string_view, std::optional<std::string_view>>
+      symbolTable;
+
   while (lexer->peekToken().has_value()) {
     auto fn = TRY(parseFunctionDeclaration());
+    symbolTable[fn->name] = fn->returnType;
     functions.push_back(std::move(fn));
   }
 
-  return std::make_optional<Program>(std::move(functions));
+  return std::make_optional<Program>(std::move(functions),
+                                     std::move(symbolTable));
 }
 
 /* Consumes tokens until we after we reach a semicolon. Then we should be able
