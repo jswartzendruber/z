@@ -1,6 +1,4 @@
-#include "Lib/AST.hh"
 #include "Lib/Analyzer.hh"
-#include "Lib/ErrorReporter.hh"
 #include "Lib/Parser.hh"
 #include <fstream>
 #include <sstream>

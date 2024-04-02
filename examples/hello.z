@@ -1,8 +1,12 @@
 // This is a single line comment!
 /* This is a multi
    line comment! */
-fn id(a: i64) -> int {
-  let test: i64 = 10;
+fn id(a: i64) -> i64 {
+  let test = 10;
+  let s = "abc";
+  let unary = -1;
+  let binary = 1.0 - -3.0;
+  let call = id(test);
   for (let i = 0; i < 10; i++) {
     let b = -4 * 4 < 7 - 2;
   }

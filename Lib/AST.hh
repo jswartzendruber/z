@@ -71,7 +71,8 @@ public:
   bool operator==(const PrimitiveType &other) const;
 };
 
-std::optional<PrimitiveType> stringToPrimitiveType(std::string_view in);
+std::optional<PrimitiveType>
+stringToPrimitiveType(std::optional<std::string_view> in);
 
 enum class PostfixOperation {
   Increment,
@@ -213,12 +214,12 @@ public:
 };
 
 class FunctionCall : public Expression, public Statement {
+public:
   std::string_view name;
   std::vector<std::unique_ptr<Expression>> arguments;
 
   std::optional<PrimitiveType> annotatedType;
 
-public:
   FunctionCall(std::string_view name,
                std::vector<std::unique_ptr<Expression>> arguments)
       : Expression(Expression::Type::FunctionCall),
@@ -228,22 +229,22 @@ public:
 };
 
 class StatementBlock : public Printable {
+public:
   std::vector<std::unique_ptr<Statement>> statements;
 
-public:
   StatementBlock(std::vector<std::unique_ptr<Statement>> statements)
       : statements(std::move(statements)) {}
   void print(std::ostream &os);
 };
 
 class IfStatement : public Statement {
+public:
   std::unique_ptr<Expression> condition;
   std::unique_ptr<StatementBlock> ifTrueStmts;
   std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts;
 
   std::optional<PrimitiveType> conditionAnnotatedType;
 
-public:
   IfStatement(std::unique_ptr<Expression> condition,
               std::unique_ptr<StatementBlock> ifTrueStmts,
               std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts)
@@ -255,13 +256,13 @@ public:
 };
 
 class LetStatement : public Statement {
+public:
   std::string_view name;
   std::optional<std::string_view> type;
   std::unique_ptr<Expression> initializer;
 
   std::optional<PrimitiveType> annotatedType;
 
-public:
   LetStatement(std::string_view name, std::optional<std::string_view> type,
                std::unique_ptr<Expression> initializer)
       : Statement(Statement::Type::LetStatement), name(name), type(type),
@@ -270,12 +271,12 @@ public:
 };
 
 class WhileStatement : public Statement {
+public:
   std::unique_ptr<Expression> condition;
   std::unique_ptr<StatementBlock> body;
 
   std::optional<PrimitiveType> conditionAnnotatedType;
 
-public:
   WhileStatement(std::unique_ptr<Expression> condition,
                  std::unique_ptr<StatementBlock> body)
       : Statement(Statement::Type::WhileStatement),
@@ -285,6 +286,7 @@ public:
 };
 
 class ForStatement : public Statement {
+public:
   std::unique_ptr<LetStatement> declaration;
   std::unique_ptr<Expression> condition;
   std::unique_ptr<Expression> updater;
@@ -292,7 +294,6 @@ class ForStatement : public Statement {
 
   std::optional<PrimitiveType> conditionAnnotatedType;
 
-public:
   ForStatement(std::unique_ptr<LetStatement> declaration,
                std::unique_ptr<Expression> condition,
                std::unique_ptr<Expression> updater,
@@ -371,6 +372,13 @@ public:
   virtual void
   visitFunctionDeclaration(FunctionDeclaration *functionDeclaration);
   virtual void visitFunctionParameter(Parameter *parameter);
+  virtual void visitStatement(Statement *statement);
+  virtual void visitLetStatement(LetStatement *letStatement);
+  virtual void visitFunctionCall(FunctionCall *functionCall);
+  virtual void visitIfStatement(IfStatement *ifStatement);
+  virtual void visitReturnStatement(ReturnStatement *returnStatement);
+  virtual void visitWhileStatement(WhileStatement *whileStatement);
+  virtual void visitForStatement(ForStatement *forStatement);
 };
 
 #endif

@@ -1,6 +1,5 @@
 #include "AST.hh"
 #include "Lexer.hh"
-#include <memory>
 
 std::string postfixOperationToString(PostfixOperation op) {
   switch (op) {
@@ -45,19 +44,28 @@ bool PrimitiveType::operator==(const PrimitiveType &other) const {
   return type == other.type;
 }
 
-std::optional<PrimitiveType> stringToPrimitiveType(std::string_view in) {
-  if (in == "bool") {
-    return PrimitiveType(PrimitiveType::Type::Boolean);
-  } else if (in == "String") {
-    return PrimitiveType(PrimitiveType::Type::String);
-  } else if (in == "") {
-    return PrimitiveType(PrimitiveType::Type::Void);
-  } else if (in == "i64") {
-    return PrimitiveType(PrimitiveType::Type::I64);
-  } else if (in == "f64") {
-    return PrimitiveType(PrimitiveType::Type::F64);
+std::optional<PrimitiveType>
+stringToPrimitiveType(std::optional<std::string_view> in) {
+  if (in.has_value()) {
+    auto v = in.value();
+    if (v == "bool") {
+      return PrimitiveType(PrimitiveType::Type::Boolean);
+    } else if (v == "String") {
+      return PrimitiveType(PrimitiveType::Type::String);
+    } else if (v == "") {
+      return PrimitiveType(PrimitiveType::Type::Void);
+    } else if (v == "i64") {
+      return PrimitiveType(PrimitiveType::Type::I64);
+    } else if (v == "f64") {
+      return PrimitiveType(PrimitiveType::Type::F64);
+    } else {
+      // If the input type does not match anything else, we don't know what it
+      // is.
+      return std::nullopt;
+    }
   } else {
-    return std::nullopt;
+    // IF the input optional is empty, the type is assumed to be void.
+    return PrimitiveType(PrimitiveType::Type::Void);
   }
 }
 
@@ -266,6 +274,66 @@ void ASTVisitor::visitFunctionDeclaration(
   for (auto &param : functionDeclaration->parameters) {
     visitFunctionParameter(param.get());
   }
+
+  for (auto &statement : functionDeclaration->body.get()->statements) {
+    visitStatement(statement.get());
+  }
+}
+
+void ASTVisitor::visitFunctionCall(FunctionCall *functionCall) {
+  (void)functionCall;
+}
+
+void ASTVisitor::visitIfStatement(IfStatement *ifStatement) {
+  for (auto &statement : ifStatement->ifTrueStmts.get()->statements) {
+    visitStatement(statement.get());
+  }
+
+  if (ifStatement->ifFalseStmts.has_value()) {
+    for (auto &statement :
+         ifStatement->ifFalseStmts.value().get()->statements) {
+      visitStatement(statement.get());
+    }
+  }
+}
+
+void ASTVisitor::visitReturnStatement(ReturnStatement *returnStatement) {
+  (void)returnStatement;
+}
+
+void ASTVisitor::visitLetStatement(LetStatement *letStatement) {
+  (void)letStatement;
+}
+
+void ASTVisitor::visitWhileStatement(WhileStatement *whileStatement) {
+  for (auto &statement : whileStatement->body.get()->statements) {
+    visitStatement(statement.get());
+  }
+}
+
+void ASTVisitor::visitForStatement(ForStatement *whileStatement) {
+  for (auto &statement : whileStatement->body.get()->statements) {
+    visitStatement(statement.get());
+  }
+}
+
+void ASTVisitor::visitStatement(Statement *statement) {
+  switch (statement->type) {
+  case Statement::Type::FunctionCall:
+    return visitFunctionCall((FunctionCall *)statement);
+  case Statement::Type::IfStatement:
+    return visitIfStatement((IfStatement *)statement);
+  case Statement::Type::ReturnStatement:
+    return visitReturnStatement((ReturnStatement *)statement);
+  case Statement::Type::LetStatement:
+    return visitLetStatement((LetStatement *)statement);
+  case Statement::Type::WhileStatement:
+    return visitWhileStatement((WhileStatement *)statement);
+  case Statement::Type::ForStatement:
+    return visitForStatement((ForStatement *)statement);
+  }
+
+  UNREACHABLE();
 }
 
 void ASTVisitor::visitFunctionParameter(Parameter *parameter) {

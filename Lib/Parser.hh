@@ -2,9 +2,7 @@
 #define PARSER_HH
 
 #include "AST.hh"
-#include "ErrorReporter.hh"
 #include "Lexer.hh"
-#include <memory>
 #include <stack>
 
 struct Parser {

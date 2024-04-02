@@ -17,4 +17,30 @@ public:
   bool anyErrors();
 };
 
+class AnalyzerVisitor : public ASTVisitor {
+  Analyzer *analyzer;
+  FunctionDeclaration *currentFunctionDeclaration;
+  Program *currentProgram;
+
+public:
+  void report(std::string msg);
+
+  PrimitiveType determineTypeOfFunctionCall(FunctionCall *expr);
+  PrimitiveType determineTypeOfVariable(Variable *expr);
+  PrimitiveType determineTypeOfBinaryExpression(BinaryExpression *expr);
+  PrimitiveType determineTypeOfPostfixExpression(PostfixExpression *expr);
+  PrimitiveType determineTypeOfUnaryExpression(UnaryExpression *expr);
+  PrimitiveType determineTypeOf(Expression *expr);
+
+  void
+  visitFunctionDeclaration(FunctionDeclaration *functionDeclaration) override;
+  void visitFunctionParameter(Parameter *parameter) override;
+  void visitLetStatement(LetStatement *letStatement) override;
+  void visitProgram(Program *program) override;
+
+  AnalyzerVisitor(Analyzer *analyzer)
+      : analyzer(analyzer), currentFunctionDeclaration(nullptr),
+        currentProgram(nullptr) {}
+};
+
 #endif
