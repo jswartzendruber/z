@@ -1,4 +1,5 @@
 #include "Parser.hh"
+#include "AST.hh"
 #include <charconv>
 #include <sstream>
 
@@ -415,20 +416,20 @@ Parser::parseFunctionDeclaration() {
 
   popEnvironment();
 
-  return std::make_unique<FunctionDeclaration>(name.src, std::move(parameters),
-                                               std::move(body), returnType,
-                                               std::move(symbolTable));
+  auto header = FunctionHeader(name.src, returnType, std::move(parameters));
+
+  return std::make_unique<FunctionDeclaration>(
+      std::move(header), std::move(body), std::move(symbolTable));
 }
 
 std::optional<Program> Parser::parse() {
   std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
-  std::unordered_map<std::string_view, std::optional<std::string_view>>
-      symbolTable;
+  std::unordered_map<std::string_view, FunctionHeader *> symbolTable;
 
   while (lexer->peekToken().has_value()) {
     auto fn = TRY(parseFunctionDeclaration());
-    symbolTable[fn->name] = fn->returnType;
+    symbolTable[fn->header.name] = &fn->header;
     functions.push_back(std::move(fn));
   }
 

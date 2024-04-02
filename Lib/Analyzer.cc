@@ -3,8 +3,7 @@
 #include "Lexer.hh"
 #include <sstream>
 
-// TODO: check whiles, fors, ifs function call headers. We need to add more information
-// to the ast for the call headers.
+// TODO: check whiles, fors, ifs.
 
 void Analyzer::report(std::string msg) {
   errorReporter->report(msg);
@@ -21,12 +20,12 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
   if (currentProgram->symbolTable.find(expr->name) ==
       currentProgram->symbolTable.end()) {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "variable '" << expr->name << "' does not have an associated type.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   } else {
-    fnReturnTypeStrOpt = currentProgram->symbolTable[expr->name];
+    fnReturnTypeStrOpt = currentProgram->symbolTable[expr->name]->type;
   }
 
   auto fnReturnTyOpt = stringToPrimitiveType(fnReturnTypeStrOpt);
@@ -37,11 +36,44 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
     ss << "'"
        << " has type '" << fnReturnTypeStrOpt.value()
        << "' which does not exist.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 
   // Also check that the parameters match the function header
+  auto parameters = &currentProgram->symbolTable[expr->name]->parameters;
+  auto arguments = &expr->arguments;
+  for (unsigned long i = 0; i < parameters->size() && i < arguments->size();
+       i++) {
+    auto param = (*parameters)[i].get();
+    auto argument = (*arguments)[i].get();
+
+    auto argType = determineTypeOf(argument);
+    if (param->annotatedType != argType) {
+      std::stringstream ss;
+      ss << "function '" << expr->name;
+      ss << "'"
+         << " has expression with type '" << argType << "' but type '"
+         << *param->annotatedType << "' was expected.";
+      report(ss.str());
+    }
+  }
+
+  if (parameters->size() > arguments->size()) {
+    std::stringstream ss;
+    ss << "function '" << expr->name;
+    ss << "'"
+       << " has function call '" << expr->name
+       << "' which has too few arguments.";
+    report(ss.str());
+  } else if (arguments->size() > parameters->size()) {
+    std::stringstream ss;
+    ss << "function '" << expr->name;
+    ss << "'"
+       << " has function call '" << expr->name
+       << "' which has too many arguments.";
+    report(ss.str());
+  }
 
   return fnReturnTyOpt.value();
 }
@@ -51,9 +83,9 @@ PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
   if (currentFunctionDeclaration->symbolTable.find(expr->name) ==
       currentFunctionDeclaration->symbolTable.end()) {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "variable '" << expr->name << "' does not have an associated type.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   } else {
     strTypeOpt = currentFunctionDeclaration->symbolTable[expr->name];
@@ -61,9 +93,9 @@ PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
 
   if (!strTypeOpt.has_value()) {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "variable '" << expr->name << "' does not have an associated type.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 
@@ -71,10 +103,10 @@ PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
   auto tyOpt = stringToPrimitiveType(strType);
   if (!tyOpt.has_value()) {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "variable '" << expr->name << "' has type '" << strType
        << "' which does not exist.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 
@@ -90,10 +122,10 @@ AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
     return lhs;
   } else {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "expression's left side has type '" << lhs
        << "' which does not match it's right side type of '" << rhs << "'";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 }
@@ -110,11 +142,11 @@ AnalyzerVisitor::determineTypeOfPostfixExpression(PostfixExpression *expr) {
     return tyOpt;
   } else {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "expression '" << *expr << "' has type '" << tyOpt
        << "' which does not make sense. It should have a type of i64 or "
           "f64.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 }
@@ -131,11 +163,11 @@ AnalyzerVisitor::determineTypeOfUnaryExpression(UnaryExpression *expr) {
     return tyOpt;
   } else {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "expression '" << *expr << "' has type '" << tyOpt
        << "' which does not make sense. It should have a type of i64 or "
           "f64.";
-    analyzer->report(ss.str());
+    report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
 }
@@ -176,7 +208,7 @@ PrimitiveType AnalyzerVisitor::determineTypeOf(Expression *expr) {
 void AnalyzerVisitor::visitFunctionDeclaration(
     FunctionDeclaration *functionDeclaration) {
   currentFunctionDeclaration = functionDeclaration;
-  for (auto &param : functionDeclaration->parameters) {
+  for (auto &param : functionDeclaration->header.parameters) {
     visitFunctionParameter(param.get());
   }
 
@@ -192,7 +224,7 @@ void AnalyzerVisitor::visitFunctionParameter(Parameter *parameter) {
     parameter->annotatedType = param_ty.value();
   } else {
     std::stringstream ss;
-    ss << "in function '" << currentFunctionDeclaration->name << "', ";
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
     ss << "parameter '" << parameter->name << "' has type '" << parameter->type
        << "' which does not exist.";
     report(ss.str());
@@ -208,14 +240,15 @@ void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
 
     if (!expectedTy.has_value()) {
       std::stringstream ss;
-      ss << "in function '" << currentFunctionDeclaration->name << "', ";
+      ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
       ss << "let statement for '" << letStatement->name << "' has type '"
          << letStatement->type.value() << "' which does not exist.";
       report(ss.str());
     } else {
       if (ty != expectedTy.value()) {
         std::stringstream ss;
-        ss << "in function '" << currentFunctionDeclaration->name << "', ";
+        ss << "in function '" << currentFunctionDeclaration->header.name
+           << "', ";
         ss << "let statement for '" << letStatement->name
            << "' is declared with type '" << expectedTy.value()
            << "' which does not match actual type of '" << ty << "'.";

@@ -6,7 +6,7 @@ fn id(a: i64) -> i64 {
   let s = "abc";
   let unary = -1;
   let binary = 1.0 - -3.0;
-  let call = id(test);
+  let call = id(2);
   for (let i = 0; i < 10; i++) {
     let b = -4 * 4 < 7 - 2;
   }

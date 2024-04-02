@@ -329,25 +329,32 @@ public:
   void print(std::ostream &os);
 };
 
-class FunctionDeclaration : public Printable {
+class FunctionHeader {
 public:
   std::string_view name;
+  std::optional<std::string_view> type;
   std::vector<std::unique_ptr<Parameter>> parameters;
+
+  FunctionHeader(std::string_view name, std::optional<std::string_view> type,
+                 std::vector<std::unique_ptr<Parameter>> parameters)
+      : name(name), type(type), parameters(std::move(parameters)) {}
+};
+
+class FunctionDeclaration : public Printable {
+public:
+  FunctionHeader header;
   std::unique_ptr<StatementBlock> body;
-  std::optional<std::string_view> returnType;
 
   // Contains variable type declarations, parameter declarations.
   std::unordered_map<std::string_view, std::optional<std::string_view>>
       symbolTable;
 
   FunctionDeclaration(
-      std::string_view name, std::vector<std::unique_ptr<Parameter>> parameters,
-      std::unique_ptr<StatementBlock> body,
-      std::optional<std::string_view> returnType,
+      FunctionHeader header, std::unique_ptr<StatementBlock> body,
       std::unordered_map<std::string_view, std::optional<std::string_view>>
           symbolTable)
-      : name(name), parameters(std::move(parameters)), body(std::move(body)),
-        returnType(returnType), symbolTable(std::move(symbolTable)) {}
+      : header(std::move(header)), body(std::move(body)),
+        symbolTable(std::move(symbolTable)) {}
   void print(std::ostream &os);
 };
 
@@ -356,12 +363,10 @@ public:
   std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 
   // Contains function type declarations
-  std::unordered_map<std::string_view, std::optional<std::string_view>>
-      symbolTable;
+  std::unordered_map<std::string_view, FunctionHeader *> symbolTable;
 
   Program(std::vector<std::unique_ptr<FunctionDeclaration>> functions,
-          std::unordered_map<std::string_view, std::optional<std::string_view>>
-              symbolTable)
+          std::unordered_map<std::string_view, FunctionHeader *> symbolTable)
       : functions(std::move(functions)), symbolTable(std::move(symbolTable)) {}
   void print(std::ostream &os);
 };

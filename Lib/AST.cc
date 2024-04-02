@@ -237,13 +237,13 @@ void Parameter::print(std::ostream &os) {
 
 void FunctionDeclaration::print(std::ostream &os) {
   printDepth(os, depth);
-  os << "FunctionDeclaration(" << name << " ";
-  for (auto &param : parameters) {
+  os << "FunctionDeclaration(" << header.name << " ";
+  for (auto &param : header.parameters) {
     os << *param << " ";
   }
 
-  if (returnType.has_value()) {
-    os << "-> " << returnType.value();
+  if (header.type.has_value()) {
+    os << "-> " << header.type.value();
   } else {
     os << "-> Void";
   }
@@ -271,7 +271,7 @@ void ASTVisitor::visitProgram(Program *program) {
 
 void ASTVisitor::visitFunctionDeclaration(
     FunctionDeclaration *functionDeclaration) {
-  for (auto &param : functionDeclaration->parameters) {
+  for (auto &param : functionDeclaration->header.parameters) {
     visitFunctionParameter(param.get());
   }
 
