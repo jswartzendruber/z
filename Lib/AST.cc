@@ -41,6 +41,26 @@ std::string operationToString(Operation op) {
   UNREACHABLE();
 }
 
+bool PrimitiveType::operator==(const PrimitiveType &other) const {
+  return type == other.type;
+}
+
+std::optional<PrimitiveType> stringToPrimitiveType(std::string_view in) {
+  if (in == "bool") {
+    return PrimitiveType(PrimitiveType::Type::Boolean);
+  } else if (in == "String") {
+    return PrimitiveType(PrimitiveType::Type::String);
+  } else if (in == "") {
+    return PrimitiveType(PrimitiveType::Type::Void);
+  } else if (in == "i64") {
+    return PrimitiveType(PrimitiveType::Type::I64);
+  } else if (in == "f64") {
+    return PrimitiveType(PrimitiveType::Type::F64);
+  } else {
+    return std::nullopt;
+  }
+}
+
 int Printable::depth = 0;
 
 void printDepth(std::ostream &os, int n) {
@@ -66,7 +86,34 @@ std::ostream &operator<<(std::ostream &os, Printable &node) {
   return os;
 }
 
-void Variable::print(std::ostream &os) { os << "Variable(" << name << ")"; }
+std::string primitiveTypeToString(PrimitiveType::Type type) {
+  switch (type) {
+  case PrimitiveType::Boolean:
+    return "Boolean";
+  case PrimitiveType::String:
+    return "String";
+  case PrimitiveType::Void:
+    return "Void";
+  case PrimitiveType::I64:
+    return "i64";
+  case PrimitiveType::F64:
+    return "f64";
+  }
+
+  UNREACHABLE();
+}
+
+void PrimitiveType::print(std::ostream &os) {
+  os << primitiveTypeToString(type);
+}
+
+void Variable::print(std::ostream &os) {
+  os << "Variable(" << name;
+  if (annotatedType.has_value()) {
+    os << ": " << annotatedType.value();
+  }
+  os << ")";
+}
 
 void BooleanValue::print(std::ostream &os) {
   os << "BooleanValue(" << val << ")";
@@ -84,31 +131,55 @@ void FloatValue::print(std::ostream &os) { os << "FloatValue(" << val << ")"; }
 
 void BinaryExpression::print(std::ostream &os) {
   os << "BinaryExpression(" << *lhs << " " << operationToString(op) << " "
-     << *rhs << ")";
+     << *rhs;
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
+  os << ")";
 }
 
 void PostfixExpression::print(std::ostream &os) {
-  os << "PostfixExpression(" << *expr << postfixOperationToString(op) << ")";
+  os << "PostfixExpression(" << *expr << postfixOperationToString(op);
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
+  os << ")";
 }
 
 void UnaryExpression::print(std::ostream &os) {
-  os << "UnaryExpression(" << unaryOperationToString(op) << *expr << ")";
+  os << "UnaryExpression(" << unaryOperationToString(op) << *expr;
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
+  os << ")";
 }
 
 void ReturnStatement::print(std::ostream &os) {
   os << "ReturnStatement(";
   if (val.has_value()) {
     os << *val.value();
+
+    if (annotatedType.has_value()) {
+      os << " type: " << annotatedType.value();
+    }
   }
   os << ")";
 }
 
 void WhileStatement::print(std::ostream &os) {
-  os << "While((" << *condition << ") " << *body << ")";
+  os << "While((" << *condition;
+  if (conditionAnnotatedType.has_value()) {
+    os << " type: " << conditionAnnotatedType.value();
+  }
+  os << ") " << *body << ")";
 }
 
 void IfStatement::print(std::ostream &os) {
-  os << "IfStatement(" << *condition << ") " << *ifTrueStmts;
+  os << "IfStatement(" << *condition;
+  if (conditionAnnotatedType.has_value()) {
+    os << " type: " << conditionAnnotatedType.value();
+  }
+  os << ") " << *ifTrueStmts;
 
   if (ifFalseStmts.has_value()) {
     os << " else " << *ifFalseStmts.value();
@@ -117,12 +188,19 @@ void IfStatement::print(std::ostream &os) {
 }
 
 void LetStatement::print(std::ostream &os) {
-  os << "LetStatement(" << name << " = " << *initializer << ")";
+  os << "LetStatement(" << name;
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
+  os << " = " << *initializer << ")";
 }
 
 void ForStatement::print(std::ostream &os) {
-  os << "ForStatement(" << *declaration << "; " << *condition << "; "
-     << *updater << ") {" << *body << "})";
+  os << "ForStatement(" << *declaration << "; " << *condition;
+  if (conditionAnnotatedType.has_value()) {
+    os << " type: " << conditionAnnotatedType.value();
+  }
+  os << "; " << *updater << ") {" << *body << "})";
 }
 
 void FunctionCall::print(std::ostream &os) {
@@ -135,11 +213,18 @@ void FunctionCall::print(std::ostream &os) {
     os << *arg;
     i++;
   }
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
   os << "))";
 }
 
 void Parameter::print(std::ostream &os) {
-  os << "Parameter(" << name << ": " << type << ")";
+  os << "Parameter(" << name << ": " << type;
+  if (annotatedType.has_value()) {
+    os << " type: " << annotatedType.value();
+  }
+  os << ")";
 }
 
 void FunctionDeclaration::print(std::ostream &os) {
@@ -168,4 +253,21 @@ void Program::print(std::ostream &os) {
   }
   os << ")\n";
   depth -= 2;
+}
+
+void ASTVisitor::visitProgram(Program *program) {
+  for (const auto &fn : program->functions) {
+    visitFunctionDeclaration(fn.get());
+  }
+}
+
+void ASTVisitor::visitFunctionDeclaration(
+    FunctionDeclaration *functionDeclaration) {
+  for (auto &param : functionDeclaration->parameters) {
+    visitFunctionParameter(param.get());
+  }
+}
+
+void ASTVisitor::visitFunctionParameter(Parameter *parameter) {
+  (void)parameter;
 }

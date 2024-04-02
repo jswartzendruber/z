@@ -46,8 +46,6 @@
     lexer->nextToken().value();                                                \
   })
 
-class Statement;
-
 class Printable {
 public:
   static int depth;
@@ -56,6 +54,24 @@ public:
   virtual ~Printable() = default;
   Printable() {}
 };
+
+class PrimitiveType : public Printable {
+public:
+  enum Type {
+    Boolean,
+    String,
+    Void,
+    I64,
+    F64,
+  } type;
+
+  PrimitiveType() = delete;
+  PrimitiveType(PrimitiveType::Type type) : type(type) {}
+  void print(std::ostream &os);
+  bool operator==(const PrimitiveType &other) const;
+};
+
+std::optional<PrimitiveType> stringToPrimitiveType(std::string_view in);
 
 enum class PostfixOperation {
   Increment,
@@ -112,8 +128,11 @@ class Variable : public Expression {
 public:
   std::string_view name;
 
+  std::optional<PrimitiveType> annotatedType;
+
   Variable(std::string_view name)
-      : Expression(Expression::Type::Variable), name(name) {}
+      : Expression(Expression::Type::Variable), name(name),
+        annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -158,10 +177,12 @@ public:
   std::unique_ptr<Expression> rhs;
   Operation op;
 
+  std::optional<PrimitiveType> annotatedType;
+
   BinaryExpression(Operation op, std::unique_ptr<Expression> lhs,
                    std::unique_ptr<Expression> rhs)
       : Expression(Expression::Type::BinaryExpression), lhs(std::move(lhs)),
-        rhs(std::move(rhs)), op(op) {}
+        rhs(std::move(rhs)), op(op), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -170,9 +191,11 @@ public:
   std::unique_ptr<Expression> expr;
   PostfixOperation op;
 
+  std::optional<PrimitiveType> annotatedType;
+
   PostfixExpression(std::unique_ptr<Expression> expr, PostfixOperation op)
       : Expression(Expression::Type::PostfixExpression), expr(std::move(expr)),
-        op(op) {}
+        op(op), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -181,9 +204,11 @@ public:
   std::unique_ptr<Expression> expr;
   UnaryOperation op;
 
+  std::optional<PrimitiveType> annotatedType;
+
   UnaryExpression(std::unique_ptr<Expression> expr, UnaryOperation op)
       : Expression(Expression::Type::UnaryExpression), expr(std::move(expr)),
-        op(op) {}
+        op(op), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -191,12 +216,14 @@ class FunctionCall : public Expression, public Statement {
   std::string_view name;
   std::vector<std::unique_ptr<Expression>> arguments;
 
+  std::optional<PrimitiveType> annotatedType;
+
 public:
   FunctionCall(std::string_view name,
                std::vector<std::unique_ptr<Expression>> arguments)
       : Expression(Expression::Type::FunctionCall),
         Statement(Statement::Type::FunctionCall), name(name),
-        arguments(std::move(arguments)) {}
+        arguments(std::move(arguments)), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -214,13 +241,16 @@ class IfStatement : public Statement {
   std::unique_ptr<StatementBlock> ifTrueStmts;
   std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts;
 
+  std::optional<PrimitiveType> conditionAnnotatedType;
+
 public:
   IfStatement(std::unique_ptr<Expression> condition,
               std::unique_ptr<StatementBlock> ifTrueStmts,
               std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts)
       : Statement(Statement::Type::IfStatement),
         condition(std::move(condition)), ifTrueStmts(std::move(ifTrueStmts)),
-        ifFalseStmts(std::move(ifFalseStmts)) {}
+        ifFalseStmts(std::move(ifFalseStmts)),
+        conditionAnnotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -229,11 +259,13 @@ class LetStatement : public Statement {
   std::optional<std::string_view> type;
   std::unique_ptr<Expression> initializer;
 
+  std::optional<PrimitiveType> annotatedType;
+
 public:
   LetStatement(std::string_view name, std::optional<std::string_view> type,
                std::unique_ptr<Expression> initializer)
       : Statement(Statement::Type::LetStatement), name(name), type(type),
-        initializer(std::move(initializer)) {}
+        initializer(std::move(initializer)), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -241,11 +273,14 @@ class WhileStatement : public Statement {
   std::unique_ptr<Expression> condition;
   std::unique_ptr<StatementBlock> body;
 
+  std::optional<PrimitiveType> conditionAnnotatedType;
+
 public:
   WhileStatement(std::unique_ptr<Expression> condition,
                  std::unique_ptr<StatementBlock> body)
       : Statement(Statement::Type::WhileStatement),
-        condition(std::move(condition)), body(std::move(body)) {}
+        condition(std::move(condition)), body(std::move(body)),
+        conditionAnnotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -255,6 +290,8 @@ class ForStatement : public Statement {
   std::unique_ptr<Expression> updater;
   std::unique_ptr<StatementBlock> body;
 
+  std::optional<PrimitiveType> conditionAnnotatedType;
+
 public:
   ForStatement(std::unique_ptr<LetStatement> declaration,
                std::unique_ptr<Expression> condition,
@@ -262,16 +299,20 @@ public:
                std::unique_ptr<StatementBlock> body)
       : Statement(Statement::Type::ForStatement),
         declaration(std::move(declaration)), condition(std::move(condition)),
-        updater(std::move(updater)), body(std::move(body)) {}
+        updater(std::move(updater)), body(std::move(body)),
+        conditionAnnotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
 class ReturnStatement : public Statement {
   std::optional<std::unique_ptr<Expression>> val;
 
+  std::optional<PrimitiveType> annotatedType;
+
 public:
   ReturnStatement(std::optional<std::unique_ptr<Expression>> val)
-      : Statement(Statement::Type::ReturnStatement), val(std::move(val)) {}
+      : Statement(Statement::Type::ReturnStatement), val(std::move(val)),
+        annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -280,8 +321,10 @@ public:
   std::string_view name;
   std::string_view type;
 
+  std::optional<PrimitiveType> annotatedType;
+
   Parameter(std::string_view name, std::string_view type)
-      : name(name), type(type) {}
+      : name(name), type(type), annotatedType(std::nullopt) {}
   void print(std::ostream &os);
 };
 
@@ -320,6 +363,14 @@ public:
               symbolTable)
       : functions(std::move(functions)), symbolTable(std::move(symbolTable)) {}
   void print(std::ostream &os);
+};
+
+class ASTVisitor {
+public:
+  virtual void visitProgram(Program *program);
+  virtual void
+  visitFunctionDeclaration(FunctionDeclaration *functionDeclaration);
+  virtual void visitFunctionParameter(Parameter *parameter);
 };
 
 #endif
