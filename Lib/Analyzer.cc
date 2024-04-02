@@ -3,8 +3,6 @@
 #include "Lexer.hh"
 #include <sstream>
 
-// TODO: check whiles
-
 void Analyzer::report(std::string msg) {
   errorReporter->report(msg);
   hadErrors = true;
@@ -323,6 +321,23 @@ void AnalyzerVisitor::visitForStatement(ForStatement *forStatement) {
   }
 
   for (auto &statement : forStatement->body.get()->statements) {
+    visitStatement(statement.get());
+  }
+}
+
+void AnalyzerVisitor::visitWhileStatement(WhileStatement *whileStatement) {
+  // Check condition results in a boolean type
+  auto conditionTy = determineTypeOfExpression(whileStatement->condition.get());
+
+  if (conditionTy.type != PrimitiveType::Type::Boolean) {
+    std::stringstream ss;
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
+    ss << "while statement condition '" << *whileStatement->condition
+       << "' has type '" << conditionTy << "' but should have type 'Boolean'.";
+    report(ss.str());
+  }
+
+  for (auto &statement : whileStatement->body.get()->statements) {
     visitStatement(statement.get());
   }
 }
