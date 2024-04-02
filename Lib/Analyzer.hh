@@ -30,12 +30,13 @@ public:
   PrimitiveType determineTypeOfBinaryExpression(BinaryExpression *expr);
   PrimitiveType determineTypeOfPostfixExpression(PostfixExpression *expr);
   PrimitiveType determineTypeOfUnaryExpression(UnaryExpression *expr);
-  PrimitiveType determineTypeOf(Expression *expr);
+  PrimitiveType determineTypeOfExpression(Expression *expr);
 
   void
   visitFunctionDeclaration(FunctionDeclaration *functionDeclaration) override;
   void visitFunctionParameter(Parameter *parameter) override;
   void visitLetStatement(LetStatement *letStatement) override;
+  void visitIfStatement(IfStatement *ifStatement) override;
   void visitProgram(Program *program) override;
 
   AnalyzerVisitor(Analyzer *analyzer)

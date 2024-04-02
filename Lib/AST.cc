@@ -183,11 +183,7 @@ void WhileStatement::print(std::ostream &os) {
 }
 
 void IfStatement::print(std::ostream &os) {
-  os << "IfStatement(" << *condition;
-  if (conditionAnnotatedType.has_value()) {
-    os << " type: " << conditionAnnotatedType.value();
-  }
-  os << ") " << *ifTrueStmts;
+  os << "IfStatement(" << *condition << ") " << *ifTrueStmts;
 
   if (ifFalseStmts.has_value()) {
     os << " else " << *ifFalseStmts.value();

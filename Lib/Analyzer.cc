@@ -3,7 +3,7 @@
 #include "Lexer.hh"
 #include <sstream>
 
-// TODO: check whiles, fors, ifs.
+// TODO: check whiles, fors.
 
 void Analyzer::report(std::string msg) {
   errorReporter->report(msg);
@@ -48,7 +48,7 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
     auto param = (*parameters)[i].get();
     auto argument = (*arguments)[i].get();
 
-    auto argType = determineTypeOf(argument);
+    auto argType = determineTypeOfExpression(argument);
     if (param->annotatedType != argType) {
       std::stringstream ss;
       ss << "function '" << expr->name;
@@ -79,6 +79,12 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
 }
 
 PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
+  // Check the annotated types first to see if we already found this value
+  auto it = currentFunctionDeclaration->annotatedTypes.find(expr->name);
+  if (it != currentFunctionDeclaration->annotatedTypes.end()) {
+    return it->second;
+  }
+
   std::optional<std::string_view> strTypeOpt;
   if (currentFunctionDeclaration->symbolTable.find(expr->name) ==
       currentFunctionDeclaration->symbolTable.end()) {
@@ -115,8 +121,8 @@ PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
 
 PrimitiveType
 AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
-  auto lhs = determineTypeOf(expr->lhs.get());
-  auto rhs = determineTypeOf(expr->rhs.get());
+  auto lhs = determineTypeOfExpression(expr->lhs.get());
+  auto rhs = determineTypeOfExpression(expr->rhs.get());
 
   if (lhs == rhs) {
     return lhs;
@@ -133,7 +139,7 @@ AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
 PrimitiveType
 AnalyzerVisitor::determineTypeOfPostfixExpression(PostfixExpression *expr) {
   // These operations only make sense on integers/floats
-  auto tyOpt = determineTypeOf(expr->expr.get());
+  auto tyOpt = determineTypeOfExpression(expr->expr.get());
 
   // ty opt should always have a value here, even if void because of an
   // error from the previous determinetypeof.
@@ -154,7 +160,7 @@ AnalyzerVisitor::determineTypeOfPostfixExpression(PostfixExpression *expr) {
 PrimitiveType
 AnalyzerVisitor::determineTypeOfUnaryExpression(UnaryExpression *expr) {
   // These operations only make sense on integers/floats
-  auto tyOpt = determineTypeOf(expr->expr.get());
+  auto tyOpt = determineTypeOfExpression(expr->expr.get());
 
   // ty opt should always have a value here, even if void because of an
   // error from the previous determinetypeof.
@@ -172,7 +178,7 @@ AnalyzerVisitor::determineTypeOfUnaryExpression(UnaryExpression *expr) {
   }
 }
 
-PrimitiveType AnalyzerVisitor::determineTypeOf(Expression *expr) {
+PrimitiveType AnalyzerVisitor::determineTypeOfExpression(Expression *expr) {
   switch (expr->type) {
   case Expression::Type::IntegerValue:
     return PrimitiveType(PrimitiveType::Type::I64);
@@ -218,10 +224,10 @@ void AnalyzerVisitor::visitFunctionDeclaration(
 }
 
 void AnalyzerVisitor::visitFunctionParameter(Parameter *parameter) {
-  auto param_ty = stringToPrimitiveType(parameter->type);
+  auto paramTy = stringToPrimitiveType(parameter->type);
 
-  if (param_ty.has_value()) {
-    parameter->annotatedType = param_ty.value();
+  if (paramTy.has_value()) {
+    parameter->annotatedType = paramTy.value();
   } else {
     std::stringstream ss;
     ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
@@ -232,10 +238,11 @@ void AnalyzerVisitor::visitFunctionParameter(Parameter *parameter) {
 }
 
 void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
-  std::cout << *letStatement << "\n";
-  auto ty = determineTypeOf(letStatement->initializer.get());
+  auto ty = determineTypeOfExpression(letStatement->initializer.get());
 
   if (letStatement->type.has_value()) {
+    // IF the let statement was declared with a value, check that it
+    // exists and matches the found type.
     auto expectedTy = stringToPrimitiveType(letStatement->type);
 
     if (!expectedTy.has_value()) {
@@ -245,7 +252,9 @@ void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
          << letStatement->type.value() << "' which does not exist.";
       report(ss.str());
     } else {
-      if (ty != expectedTy.value()) {
+      if (ty == expectedTy.value()) {
+        letStatement->annotatedType = ty;
+      } else {
         std::stringstream ss;
         ss << "in function '" << currentFunctionDeclaration->header.name
            << "', ";
@@ -254,6 +263,35 @@ void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
            << "' which does not match actual type of '" << ty << "'.";
         report(ss.str());
       }
+    }
+  } else {
+    // Annotate the let statement with the type we found. We will also
+    // need to add it to the symbol table, since we know the type now.
+    letStatement->annotatedType = ty;
+    currentFunctionDeclaration->annotatedTypes.emplace(letStatement->name, ty);
+  }
+}
+
+void AnalyzerVisitor::visitIfStatement(IfStatement *ifStatement) {
+  // Check condition results in a boolean type
+  auto conditionTy = determineTypeOfExpression(ifStatement->condition.get());
+
+  if (conditionTy.type != PrimitiveType::Type::Boolean) {
+    std::stringstream ss;
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
+    ss << "if statement condition '" << *ifStatement->condition
+       << "' has type '" << conditionTy << "' but should have type 'Boolean'.";
+    report(ss.str());
+  }
+
+  for (auto &statement : ifStatement->ifTrueStmts.get()->statements) {
+    visitStatement(statement.get());
+  }
+
+  if (ifStatement->ifFalseStmts.has_value()) {
+    for (auto &statement :
+         ifStatement->ifFalseStmts.value().get()->statements) {
+      visitStatement(statement.get());
     }
   }
 }

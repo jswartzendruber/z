@@ -243,15 +243,12 @@ public:
   std::unique_ptr<StatementBlock> ifTrueStmts;
   std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts;
 
-  std::optional<PrimitiveType> conditionAnnotatedType;
-
   IfStatement(std::unique_ptr<Expression> condition,
               std::unique_ptr<StatementBlock> ifTrueStmts,
               std::optional<std::unique_ptr<StatementBlock>> ifFalseStmts)
       : Statement(Statement::Type::IfStatement),
         condition(std::move(condition)), ifTrueStmts(std::move(ifTrueStmts)),
-        ifFalseStmts(std::move(ifFalseStmts)),
-        conditionAnnotatedType(std::nullopt) {}
+        ifFalseStmts(std::move(ifFalseStmts)) {}
   void print(std::ostream &os);
 };
 
@@ -349,12 +346,14 @@ public:
   std::unordered_map<std::string_view, std::optional<std::string_view>>
       symbolTable;
 
+  std::unordered_map<std::string_view, PrimitiveType> annotatedTypes;
+
   FunctionDeclaration(
       FunctionHeader header, std::unique_ptr<StatementBlock> body,
       std::unordered_map<std::string_view, std::optional<std::string_view>>
           symbolTable)
       : header(std::move(header)), body(std::move(body)),
-        symbolTable(std::move(symbolTable)) {}
+        symbolTable(std::move(symbolTable)), annotatedTypes() {}
   void print(std::ostream &os);
 };
 
