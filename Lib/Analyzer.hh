@@ -34,6 +34,7 @@ public:
 
   void
   visitFunctionDeclaration(FunctionDeclaration *functionDeclaration) override;
+  void visitForStatement(ForStatement *forStatement) override;
   void visitFunctionParameter(Parameter *parameter) override;
   void visitLetStatement(LetStatement *letStatement) override;
   void visitIfStatement(IfStatement *ifStatement) override;

@@ -289,16 +289,13 @@ public:
   std::unique_ptr<Expression> updater;
   std::unique_ptr<StatementBlock> body;
 
-  std::optional<PrimitiveType> conditionAnnotatedType;
-
   ForStatement(std::unique_ptr<LetStatement> declaration,
                std::unique_ptr<Expression> condition,
                std::unique_ptr<Expression> updater,
                std::unique_ptr<StatementBlock> body)
       : Statement(Statement::Type::ForStatement),
         declaration(std::move(declaration)), condition(std::move(condition)),
-        updater(std::move(updater)), body(std::move(body)),
-        conditionAnnotatedType(std::nullopt) {}
+        updater(std::move(updater)), body(std::move(body)) {}
   void print(std::ostream &os);
 };
 

@@ -3,7 +3,7 @@
 #include "Lexer.hh"
 #include <sstream>
 
-// TODO: check whiles, fors.
+// TODO: check whiles
 
 void Analyzer::report(std::string msg) {
   errorReporter->report(msg);
@@ -121,16 +121,28 @@ PrimitiveType AnalyzerVisitor::determineTypeOfVariable(Variable *expr) {
 
 PrimitiveType
 AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
-  auto lhs = determineTypeOfExpression(expr->lhs.get());
-  auto rhs = determineTypeOfExpression(expr->rhs.get());
+  auto lhsTy = determineTypeOfExpression(expr->lhs.get());
+  auto rhsTy = determineTypeOfExpression(expr->rhs.get());
 
-  if (lhs == rhs) {
-    return lhs;
+  auto ty = lhsTy;
+
+  switch (expr->op) {
+  case Operation::LessThan:
+  case Operation::GreaterThan:
+    ty = PrimitiveType(PrimitiveType::Type::Boolean);
+    break;
+
+  default:
+    break;
+  }
+
+  if (lhsTy == rhsTy) {
+    return ty;
   } else {
     std::stringstream ss;
     ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
-    ss << "expression's left side has type '" << lhs
-       << "' which does not match it's right side type of '" << rhs << "'";
+    ss << "expression's left side has type '" << lhsTy
+       << "' which does not match it's right side type of '" << rhsTy << "'";
     report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   }
@@ -293,6 +305,25 @@ void AnalyzerVisitor::visitIfStatement(IfStatement *ifStatement) {
          ifStatement->ifFalseStmts.value().get()->statements) {
       visitStatement(statement.get());
     }
+  }
+}
+
+void AnalyzerVisitor::visitForStatement(ForStatement *forStatement) {
+  visitLetStatement(forStatement->declaration.get());
+
+  // Check condition results in a boolean type
+  auto conditionTy = determineTypeOfExpression(forStatement->condition.get());
+
+  if (conditionTy.type != PrimitiveType::Type::Boolean) {
+    std::stringstream ss;
+    ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
+    ss << "for statement condition '" << *forStatement->condition
+       << "' has type '" << conditionTy << "' but should have type 'Boolean'.";
+    report(ss.str());
+  }
+
+  for (auto &statement : forStatement->body.get()->statements) {
+    visitStatement(statement.get());
   }
 }
 

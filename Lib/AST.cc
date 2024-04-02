@@ -184,7 +184,6 @@ void WhileStatement::print(std::ostream &os) {
 
 void IfStatement::print(std::ostream &os) {
   os << "IfStatement(" << *condition << ") " << *ifTrueStmts;
-
   if (ifFalseStmts.has_value()) {
     os << " else " << *ifFalseStmts.value();
   }
@@ -201,9 +200,6 @@ void LetStatement::print(std::ostream &os) {
 
 void ForStatement::print(std::ostream &os) {
   os << "ForStatement(" << *declaration << "; " << *condition;
-  if (conditionAnnotatedType.has_value()) {
-    os << " type: " << conditionAnnotatedType.value();
-  }
   os << "; " << *updater << ") {" << *body << "})";
 }
 
@@ -307,8 +303,9 @@ void ASTVisitor::visitWhileStatement(WhileStatement *whileStatement) {
   }
 }
 
-void ASTVisitor::visitForStatement(ForStatement *whileStatement) {
-  for (auto &statement : whileStatement->body.get()->statements) {
+void ASTVisitor::visitForStatement(ForStatement *forStatement) {
+  visitLetStatement(forStatement->declaration.get());
+  for (auto &statement : forStatement->body.get()->statements) {
     visitStatement(statement.get());
   }
 }
