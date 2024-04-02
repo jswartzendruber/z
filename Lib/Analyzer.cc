@@ -19,7 +19,8 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
       currentProgram->symbolTable.end()) {
     std::stringstream ss;
     ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
-    ss << "variable '" << expr->name << "' does not have an associated type.";
+    ss << "function call '" << expr->name
+       << "' does not have an associated type.";
     report(ss.str());
     return PrimitiveType(PrimitiveType::Type::Void);
   } else {
@@ -59,14 +60,14 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
 
   if (parameters->size() > arguments->size()) {
     std::stringstream ss;
-    ss << "function '" << expr->name;
+    ss << "function '" << currentFunctionDeclaration->header.name;
     ss << "'"
        << " has function call '" << expr->name
        << "' which has too few arguments.";
     report(ss.str());
   } else if (arguments->size() > parameters->size()) {
     std::stringstream ss;
-    ss << "function '" << expr->name;
+    ss << "function '" << currentFunctionDeclaration->header.name;
     ss << "'"
        << " has function call '" << expr->name
        << "' which has too many arguments.";
@@ -340,6 +341,10 @@ void AnalyzerVisitor::visitWhileStatement(WhileStatement *whileStatement) {
   for (auto &statement : whileStatement->body.get()->statements) {
     visitStatement(statement.get());
   }
+}
+
+void AnalyzerVisitor::visitFunctionCall(FunctionCall *functionCall) {
+  determineTypeOfFunctionCall(functionCall);
 }
 
 void AnalyzerVisitor::visitProgram(Program *program) {
