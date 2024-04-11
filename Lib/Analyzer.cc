@@ -349,8 +349,16 @@ void AnalyzerVisitor::visitFunctionCall(FunctionCall *functionCall) {
 
 void AnalyzerVisitor::visitProgram(Program *program) {
   currentProgram = program;
+  auto hadMainFunction = false;
   for (const auto &fn : program->functions) {
+    if (fn.get()->header.name == "main") {
+      hadMainFunction = true;
+    }
     visitFunctionDeclaration(fn.get());
+  }
+
+  if (!hadMainFunction) {
+    report("no main function");
   }
 }
 
