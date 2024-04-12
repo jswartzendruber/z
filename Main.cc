@@ -1,6 +1,7 @@
 #include "Lib/Analyzer.hh"
 #include "Lib/CBackend.hh"
 #include "Lib/Parser.hh"
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 
@@ -19,6 +20,28 @@ std::optional<std::string> readFile(const std::string &filename,
   std::string res = buffer.str();
 
   return res;
+}
+
+bool saveFile(const std::string &filename, const std::string &fileContents,
+              ErrorReporter *errorReporter) {
+  std::ofstream file(filename, std::ios::out);
+
+  if (!file) {
+    std::stringstream ss;
+    ss << "could not open file '" << filename << "'";
+    errorReporter->report(ss.str());
+    return false;
+  }
+
+  file << fileContents;
+
+  if (file.fail()) {
+    std::stringstream ss;
+    ss << "could not write to file '" << filename << "'";
+    return false;
+  }
+
+  return true;
 }
 
 int main(int argc, char **argv) {
@@ -55,10 +78,15 @@ int main(int argc, char **argv) {
     auto cbackend = CBackend(&ast);
     auto cSrc = cbackend.emit();
 
-    std::cout << "AST:\n";
-    std::cout << ast;
-    std::cout << "\nCodegen:\n";
-    std::cout << cSrc;
+    std::string cSrcFileName = argv[1];
+    cSrcFileName += ".c";
+    std::string cExecutableFileName = argv[1];
+    cExecutableFileName += ".out";
+
+    saveFile(cSrcFileName, cSrc, &errorReporter);
+    std::stringstream compileCommand;
+    compileCommand << "gcc -o " << cExecutableFileName << " " << cSrcFileName;
+    system(compileCommand.str().c_str());
   }
 
   return 0;
