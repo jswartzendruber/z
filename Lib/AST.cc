@@ -44,6 +44,21 @@ bool PrimitiveType::operator==(const PrimitiveType &other) const {
   return type == other.type;
 }
 
+bool PrimitiveType::matchesOrCoercesTo(PrimitiveType ty) {
+  switch (type) {
+  case Boolean:
+  case String:
+  case Void:
+    return type == ty.type;
+  case I64:
+  case I32:
+    return type == ty.type || ty.type == PrimitiveType::Type::I32;
+  case F64:
+  case F32:
+    return type == ty.type || ty.type == PrimitiveType::Type::F32;
+  }
+}
+
 std::optional<PrimitiveType>
 stringToPrimitiveType(std::optional<std::string_view> in) {
   if (in.has_value()) {

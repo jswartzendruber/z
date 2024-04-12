@@ -48,7 +48,7 @@ PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
     auto argument = (*arguments)[i].get();
 
     auto argType = determineTypeOfExpression(argument);
-    if (param->annotatedType != argType) {
+    if (!param->annotatedType.value().matchesOrCoercesTo(argType)) {
       std::stringstream ss;
       ss << "function '" << expr->name;
       ss << "'"
@@ -135,7 +135,7 @@ AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
     break;
   }
 
-  if (lhsTy == rhsTy) {
+  if (lhsTy.matchesOrCoercesTo(rhsTy)) {
     return ty;
   } else {
     std::stringstream ss;
@@ -155,7 +155,9 @@ AnalyzerVisitor::determineTypeOfPostfixExpression(PostfixExpression *expr) {
   // ty opt should always have a value here, even if void because of an
   // error from the previous determinetypeof.
   if (tyOpt.type == PrimitiveType::Type::I64 ||
-      tyOpt.type == PrimitiveType::Type::F64) {
+      tyOpt.type == PrimitiveType::Type::I32 ||
+      tyOpt.type == PrimitiveType::Type::F64 ||
+      tyOpt.type == PrimitiveType::Type::F32) {
     return tyOpt;
   } else {
     std::stringstream ss;
@@ -176,7 +178,9 @@ AnalyzerVisitor::determineTypeOfUnaryExpression(UnaryExpression *expr) {
   // ty opt should always have a value here, even if void because of an
   // error from the previous determinetypeof.
   if (tyOpt.type == PrimitiveType::Type::I64 ||
-      tyOpt.type == PrimitiveType::Type::F64) {
+      tyOpt.type == PrimitiveType::Type::I32 ||
+      tyOpt.type == PrimitiveType::Type::F64 ||
+      tyOpt.type == PrimitiveType::Type::F32) {
     return tyOpt;
   } else {
     std::stringstream ss;
@@ -192,10 +196,10 @@ AnalyzerVisitor::determineTypeOfUnaryExpression(UnaryExpression *expr) {
 PrimitiveType AnalyzerVisitor::determineTypeOfExpression(Expression *expr) {
   switch (expr->type) {
   case Expression::Type::IntegerValue:
-    return PrimitiveType(PrimitiveType::Type::I64);
+    return PrimitiveType(PrimitiveType::Type::I32);
 
   case Expression::Type::FloatValue:
-    return PrimitiveType(PrimitiveType::Type::F64);
+    return PrimitiveType(PrimitiveType::Type::F32);
 
   case Expression::Type::StringValue:
     return PrimitiveType(PrimitiveType::Type::String);
@@ -290,7 +294,7 @@ void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
          << letStatement->type.value() << "' which does not exist.";
       report(ss.str());
     } else {
-      if (ty == expectedTy.value()) {
+      if (!ty.matchesOrCoercesTo(expectedTy.value())) {
         letStatement->annotatedType = ty;
       } else {
         std::stringstream ss;

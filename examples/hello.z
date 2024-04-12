@@ -13,4 +13,6 @@ fn main() -> i32 {
   } else {
     id(4);
   }
+
+  return 0;
 }

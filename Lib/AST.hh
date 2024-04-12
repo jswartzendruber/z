@@ -71,6 +71,7 @@ public:
   PrimitiveType(PrimitiveType::Type type) : type(type) {}
   void print(std::ostream &os);
   bool operator==(const PrimitiveType &other) const;
+  bool matchesOrCoercesTo(PrimitiveType ty);
 };
 
 std::optional<PrimitiveType>
