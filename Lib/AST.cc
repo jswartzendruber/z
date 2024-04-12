@@ -31,6 +31,8 @@ std::string operationToString(Operation op) {
     return "*";
   case Operation::Div:
     return "/";
+  case Operation::EqualTo:
+    return "==";
   case Operation::LessThan:
     return "<";
   case Operation::GreaterThan:
@@ -52,10 +54,12 @@ bool PrimitiveType::matchesOrCoercesTo(PrimitiveType ty) {
     return type == ty.type;
   case I64:
   case I32:
-    return type == ty.type || ty.type == PrimitiveType::Type::I32;
+    return type == ty.type || ty.type == PrimitiveType::Type::I32 ||
+           ty.type == PrimitiveType::Type::I64;
   case F64:
   case F32:
-    return type == ty.type || ty.type == PrimitiveType::Type::F32;
+    return type == ty.type || ty.type == PrimitiveType::Type::F32 ||
+           ty.type == PrimitiveType::Type::F64;
   }
 }
 

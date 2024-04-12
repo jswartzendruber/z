@@ -39,6 +39,7 @@ enum class TokenType {
   LCurly,
   RCurly,
   Eq,
+  EqEq,
   Minus,
   Plus,
   PlusPlus,

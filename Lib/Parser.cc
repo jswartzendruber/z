@@ -1,5 +1,6 @@
 #include "Parser.hh"
 #include "AST.hh"
+#include "Lexer.hh"
 #include <charconv>
 #include <sstream>
 
@@ -50,6 +51,9 @@ infixBindingPower(TokenType type) {
 
   case TokenType::Slash:
     return std::make_tuple(Operation::Div, 3, 4);
+
+  case TokenType::EqEq:
+    return std::make_tuple(Operation::EqualTo, 0, 1);
 
   case TokenType::LAngleBracket:
     return std::make_tuple(Operation::LessThan, 0, 1);
@@ -149,11 +153,10 @@ Parser::parseExpressionBp(int minbp) {
 
   case TokenType::Identifier:
     // Is this a function call, or just an identifier?
-    // TODO: variables
     peekLparen = lexer->peekToken();
     if (peekLparen.has_value() &&
         peekLparen.value().type == TokenType::LParen) {
-      return TRY(parseFunctionCall(lhsToken));
+      lhs = TRY(parseFunctionCall(lhsToken));
     } else {
       lhs = std::make_unique<Variable>(lhsToken.src);
     }

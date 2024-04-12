@@ -6,8 +6,6 @@
 
 class EmitterVisitor : public ASTVisitor {
   std::stringstream *genSrc;
-  FunctionDeclaration *currentFunctionDeclaration;
-  Program *currentProgram;
   int depth;
 
   void printDepth();
@@ -34,9 +32,7 @@ public:
 
   void statementBlock(StatementBlock *stmts);
 
-  EmitterVisitor(std::stringstream *genSrc)
-      : genSrc(genSrc), currentFunctionDeclaration(nullptr),
-        currentProgram(nullptr), depth(0) {}
+  EmitterVisitor(std::stringstream *genSrc) : genSrc(genSrc), depth(0) {}
 };
 
 class CBackend {

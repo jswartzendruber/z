@@ -131,6 +131,7 @@ AnalyzerVisitor::determineTypeOfBinaryExpression(BinaryExpression *expr) {
   auto ty = lhsTy;
 
   switch (expr->op) {
+  case Operation::EqualTo:
   case Operation::LessThan:
   case Operation::GreaterThan:
     ty = PrimitiveType(PrimitiveType::Type::Boolean);
@@ -274,7 +275,8 @@ void AnalyzerVisitor::visitReturnStatement(ReturnStatement *returnStatement) {
   if (returnStatement->val.has_value()) {
     auto ty = determineTypeOfExpression(returnStatement->val.value().get());
 
-    if (ty != currentFunctionDeclaration->header.annotatedType) {
+    if (!ty.matchesOrCoercesTo(
+            currentFunctionDeclaration->header.annotatedType.value())) {
       std::stringstream ss;
       ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
       ss << "return statement has type '" << ty << "' but expected type '"
@@ -299,8 +301,8 @@ void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
          << letStatement->type.value() << "' which does not exist.";
       report(ss.str());
     } else {
-      if (!ty.matchesOrCoercesTo(expectedTy.value())) {
-        letStatement->annotatedType = ty;
+      if (ty.matchesOrCoercesTo(expectedTy.value())) {
+        letStatement->annotatedType = expectedTy;
       } else {
         std::stringstream ss;
         ss << "in function '" << currentFunctionDeclaration->header.name

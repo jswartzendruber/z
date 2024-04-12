@@ -95,6 +95,7 @@ enum class Operation {
   Sub,
   Mul,
   Div,
+  EqualTo,
   LessThan,
   GreaterThan,
 };

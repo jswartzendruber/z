@@ -24,6 +24,7 @@ static const std::unordered_map<TokenType, std::string> tokenTypeNames = {
     {TokenType::LCurly, "LCurly"},
     {TokenType::RCurly, "RCurly"},
     {TokenType::Eq, "Eq"},
+    {TokenType::EqEq, "EqEq"},
     {TokenType::Minus, "Minus"},
     {TokenType::Plus, "Plus"},
     {TokenType::PlusPlus, "PlusPlus"},
@@ -285,6 +286,14 @@ std::optional<Token> LexerInternal::nextToken() {
     }
     return makeToken(TokenType::Plus, 1);
 
+  case '=':
+    if (index + 1 < src.length()) {
+      if (src[index + 1] == '=') {
+        return makeToken(TokenType::EqEq, 2);
+      }
+    }
+    return makeToken(TokenType::Eq, 1);
+
   case '(':
     return makeToken(TokenType::LParen, 1);
   case ')':
@@ -293,8 +302,6 @@ std::optional<Token> LexerInternal::nextToken() {
     return makeToken(TokenType::LCurly, 1);
   case '}':
     return makeToken(TokenType::RCurly, 1);
-  case '=':
-    return makeToken(TokenType::Eq, 1);
   case '-':
     return makeToken(TokenType::Minus, 1);
   case '*':
