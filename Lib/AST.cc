@@ -276,7 +276,62 @@ void ASTVisitor::visitFunctionCall(FunctionCall *functionCall) {
   (void)functionCall;
 }
 
+void ASTVisitor::visitIntegerValue(IntegerValue *integerValue) {
+  (void)integerValue;
+}
+
+void ASTVisitor::visitFloatValue(FloatValue *floatValue) { (void)floatValue; }
+
+void ASTVisitor::visitStringValue(StringValue *stringValue) {
+  (void)stringValue;
+}
+
+void ASTVisitor::visitBinaryExpression(BinaryExpression *binaryExpression) {
+  (void)binaryExpression;
+}
+
+void ASTVisitor::visitVariable(Variable *variable) { (void)variable; }
+
+void ASTVisitor::visitBooleanValue(BooleanValue *booleanValue) {
+  (void)booleanValue;
+}
+
+void ASTVisitor::visitPostfixExpression(PostfixExpression *postfixExpression) {
+  (void)postfixExpression;
+}
+
+void ASTVisitor::visitUnaryExpression(UnaryExpression *unaryExpression) {
+  (void)unaryExpression;
+}
+
+void ASTVisitor::visitExpression(Expression *expression) {
+  switch (expression->type) {
+  case Expression::Type::IntegerValue:
+    return visitIntegerValue((IntegerValue *)expression);
+  case Expression::Type::FloatValue:
+    return visitFloatValue((FloatValue *)expression);
+  case Expression::Type::StringValue:
+    return visitStringValue((StringValue *)expression);
+  case Expression::Type::BinaryExpression:
+    return visitBinaryExpression((BinaryExpression *)expression);
+  case Expression::Type::FunctionCall:
+    return visitFunctionCall((FunctionCall *)expression);
+  case Expression::Type::Variable:
+    return visitVariable((Variable *)expression);
+  case Expression::Type::BooleanValue:
+    return visitBooleanValue((BooleanValue *)expression);
+  case Expression::Type::PostfixExpression:
+    return visitPostfixExpression((PostfixExpression *)expression);
+  case Expression::Type::UnaryExpression:
+    return visitUnaryExpression((UnaryExpression *)expression);
+  }
+
+  UNREACHABLE();
+}
+
 void ASTVisitor::visitIfStatement(IfStatement *ifStatement) {
+  visitExpression(ifStatement->condition.get());
+
   for (auto &statement : ifStatement->ifTrueStmts.get()->statements) {
     visitStatement(statement.get());
   }

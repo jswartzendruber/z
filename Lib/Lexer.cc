@@ -302,9 +302,9 @@ std::optional<Token> LexerInternal::nextToken() {
 
   case ';':
     return makeToken(TokenType::Semicolon, 1);
-  case '>':
-    return makeToken(TokenType::LAngleBracket, 1);
   case '<':
+    return makeToken(TokenType::LAngleBracket, 1);
+  case '>':
     return makeToken(TokenType::RAngleBracket, 1);
   case '!':
     return makeToken(TokenType::Bang, 1);

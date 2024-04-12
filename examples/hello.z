@@ -2,23 +2,11 @@
 /* This is a multi
    line comment! */
 fn id(a: i64) -> i64 {
-  let test = 10;
-  let s = "abc";
-  let unary = -1;
-  let binary = 1.0 - -3.0;
-  let call = id(2);
-  for (let i = 0; i < 10; i++) {
-    let b = -4 * 4 < 7 - 2;
-  }
   return a;
 }
 
 fn main() {
   let x = 1;
-
-  while (x > 2) {
-    id(1);
-  }
 
   if (x > 0) {
     id(2);

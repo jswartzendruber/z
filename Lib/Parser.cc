@@ -407,7 +407,7 @@ Parser::parseFunctionDeclaration() {
   std::optional<std::string_view> returnType = std::nullopt;
   if (TRY(lexer->peekToken()).type == TokenType::Minus) {
     EXPECT(TokenType::Minus);
-    EXPECT(TokenType::LAngleBracket);
+    EXPECT(TokenType::RAngleBracket);
     auto ty = EXPECT(TokenType::Identifier);
     returnType = ty.src;
   }

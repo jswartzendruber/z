@@ -1,4 +1,5 @@
 #include "Lib/Analyzer.hh"
+#include "Lib/CBackend.hh"
 #include "Lib/Parser.hh"
 #include <fstream>
 #include <sstream>
@@ -44,12 +45,20 @@ int main(int argc, char **argv) {
 
     auto ast = parser.parse().value();
 
-    Analyzer analyzer = Analyzer(&errorReporter, &ast);
-    analyzer.annotateAST();
+    auto analyzer = Analyzer(&errorReporter, &ast);
+    analyzer.analyze();
 
-    if (!analyzer.anyErrors()) {
-      std::cout << ast;
+    if (analyzer.anyErrors()) {
+      return 1;
     }
+
+    auto cbackend = CBackend(&ast);
+    auto cSrc = cbackend.emit();
+
+    std::cout << "AST:\n";
+    std::cout << ast;
+    std::cout << "\nCodegen:\n";
+    std::cout << cSrc;
   }
 
   return 0;

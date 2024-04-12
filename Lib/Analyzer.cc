@@ -225,6 +225,18 @@ PrimitiveType AnalyzerVisitor::determineTypeOfExpression(Expression *expr) {
 void AnalyzerVisitor::visitFunctionDeclaration(
     FunctionDeclaration *functionDeclaration) {
   currentFunctionDeclaration = functionDeclaration;
+
+  auto retTy = stringToPrimitiveType(functionDeclaration->header.type);
+
+  if (retTy.has_value()) {
+    functionDeclaration->header.annotatedType = retTy.value();
+  } else {
+    std::stringstream ss;
+    ss << "function '" << currentFunctionDeclaration->header.name << "' has invalid return type '";
+    ss << functionDeclaration->header.type.value() << "'.";
+    report(ss.str());
+  }
+
   for (auto &param : functionDeclaration->header.parameters) {
     visitFunctionParameter(param.get());
   }
@@ -362,7 +374,7 @@ void AnalyzerVisitor::visitProgram(Program *program) {
   }
 }
 
-void Analyzer::annotateAST() {
+void Analyzer::analyze() {
   AnalyzerVisitor av = AnalyzerVisitor(this);
   av.visitProgram(program);
 }

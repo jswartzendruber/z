@@ -13,7 +13,7 @@ public:
   Analyzer(ErrorReporter *errorReporter, Program *program)
       : errorReporter(errorReporter), program(program), hadErrors(false) {}
   void report(std::string msg);
-  void annotateAST();
+  void analyze();
   bool anyErrors();
 };
 

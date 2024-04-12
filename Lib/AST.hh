@@ -78,10 +78,14 @@ enum class PostfixOperation {
   Increment,
 };
 
+std::string postfixOperationToString(PostfixOperation op);
+
 enum class UnaryOperation {
   Positive,
   Negative,
 };
+
+std::string unaryOperationToString(UnaryOperation op);
 
 enum class Operation {
   Add,
@@ -91,6 +95,8 @@ enum class Operation {
   LessThan,
   GreaterThan,
 };
+
+std::string operationToString(Operation op);
 
 class Statement : public Printable {
 public:
@@ -300,11 +306,11 @@ public:
 };
 
 class ReturnStatement : public Statement {
+public:
   std::optional<std::unique_ptr<Expression>> val;
 
   std::optional<PrimitiveType> annotatedType;
 
-public:
   ReturnStatement(std::optional<std::unique_ptr<Expression>> val)
       : Statement(Statement::Type::ReturnStatement), val(std::move(val)),
         annotatedType(std::nullopt) {}
@@ -329,9 +335,12 @@ public:
   std::optional<std::string_view> type;
   std::vector<std::unique_ptr<Parameter>> parameters;
 
+  std::optional<PrimitiveType> annotatedType;
+
   FunctionHeader(std::string_view name, std::optional<std::string_view> type,
                  std::vector<std::unique_ptr<Parameter>> parameters)
-      : name(name), type(type), parameters(std::move(parameters)) {}
+      : name(name), type(type), parameters(std::move(parameters)),
+        annotatedType(std::nullopt) {}
 };
 
 class FunctionDeclaration : public Printable {
@@ -375,11 +384,20 @@ public:
   virtual void visitFunctionParameter(Parameter *parameter);
   virtual void visitStatement(Statement *statement);
   virtual void visitLetStatement(LetStatement *letStatement);
+  virtual void visitExpression(Expression *expression);
   virtual void visitFunctionCall(FunctionCall *functionCall);
   virtual void visitIfStatement(IfStatement *ifStatement);
   virtual void visitReturnStatement(ReturnStatement *returnStatement);
   virtual void visitWhileStatement(WhileStatement *whileStatement);
   virtual void visitForStatement(ForStatement *forStatement);
+  virtual void visitIntegerValue(IntegerValue *integerValue);
+  virtual void visitFloatValue(FloatValue *floatValue);
+  virtual void visitStringValue(StringValue *stringValue);
+  virtual void visitBinaryExpression(BinaryExpression *binaryExpression);
+  virtual void visitVariable(Variable *variable);
+  virtual void visitBooleanValue(BooleanValue *booleanValue);
+  virtual void visitPostfixExpression(PostfixExpression *postfixExpression);
+  virtual void visitUnaryExpression(UnaryExpression *unaryExpression);
 };
 
 #endif
