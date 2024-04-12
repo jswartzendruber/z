@@ -73,8 +73,12 @@ void EmitterVisitor::visitPostfixExpression(
 
 void EmitterVisitor::visitFunctionCall(FunctionCall *functionCall) {
   *genSrc << functionCall->name << "(";
-  for (auto &arg : functionCall->arguments) {
+  for (uint64_t i = 0; i < functionCall->arguments.size(); i++) {
+    auto &arg = functionCall->arguments[i];
     visitExpression(arg.get());
+    if (i != functionCall->arguments.size() - 1) {
+      *genSrc << ", ";
+    }
   }
   *genSrc << ")";
 }
@@ -162,7 +166,7 @@ void EmitterVisitor::visitProgram(Program *program) {
 std::string CBackend::emit() {
   genSrc << std::fixed; // Always print floats like 0.0 instead of 0
   genSrc << "#include <stdint.h>\n"; // Include int64_t type
-  genSrc << "#include <stdio.h>\n"; // printf
+  genSrc << "#include <stdio.h>\n";  // printf
 
   auto visitor = EmitterVisitor(&genSrc);
   visitor.visitProgram(ast);

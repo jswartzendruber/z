@@ -7,6 +7,7 @@ fn id(a: i64) -> i64 {
 
 fn main() -> i32 {
   let x = 1;
+  printf("x: %d s: %s\n", x, "hello world");
 
   if (x > 0) {
     id(2);

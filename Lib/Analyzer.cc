@@ -13,6 +13,11 @@ bool Analyzer::anyErrors() { return hadErrors; }
 void AnalyzerVisitor::report(std::string msg) { analyzer->report(msg); }
 
 PrimitiveType AnalyzerVisitor::determineTypeOfFunctionCall(FunctionCall *expr) {
+  if (expr->name == "printf") {
+    // Just pass printf to c without checking for now
+    return PrimitiveType(PrimitiveType::Type::Void);
+  }
+
   // Check the return type
   std::optional<std::string_view> fnReturnTypeStrOpt;
   if (currentProgram->symbolTable.find(expr->name) ==
