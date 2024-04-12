@@ -232,7 +232,8 @@ void AnalyzerVisitor::visitFunctionDeclaration(
     functionDeclaration->header.annotatedType = retTy.value();
   } else {
     std::stringstream ss;
-    ss << "function '" << currentFunctionDeclaration->header.name << "' has invalid return type '";
+    ss << "function '" << currentFunctionDeclaration->header.name
+       << "' has invalid return type '";
     ss << functionDeclaration->header.type.value() << "'.";
     report(ss.str());
   }
@@ -363,10 +364,20 @@ void AnalyzerVisitor::visitProgram(Program *program) {
   currentProgram = program;
   auto hadMainFunction = false;
   for (const auto &fn : program->functions) {
+    visitFunctionDeclaration(fn.get());
+
     if (fn.get()->header.name == "main") {
       hadMainFunction = true;
+
+      auto intTy = PrimitiveType(PrimitiveType::Type::I32);
+      if (fn.get()->header.annotatedType != intTy) {
+        std::stringstream ss;
+        ss << "main function has type '"
+           << fn.get()->header.annotatedType.value()
+           << "' but should have type " << intTy;
+        report(ss.str());
+      }
     }
-    visitFunctionDeclaration(fn.get());
   }
 
   if (!hadMainFunction) {

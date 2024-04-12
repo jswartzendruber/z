@@ -58,6 +58,10 @@ stringToPrimitiveType(std::optional<std::string_view> in) {
       return PrimitiveType(PrimitiveType::Type::I64);
     } else if (v == "f64") {
       return PrimitiveType(PrimitiveType::Type::F64);
+    } else if (v == "i32") {
+      return PrimitiveType(PrimitiveType::Type::I32);
+    } else if (v == "f32") {
+      return PrimitiveType(PrimitiveType::Type::F32);
     } else {
       // If the input type does not match anything else, we don't know what it
       // is.
@@ -106,6 +110,10 @@ std::string primitiveTypeToString(PrimitiveType::Type type) {
     return "i64";
   case PrimitiveType::F64:
     return "f64";
+  case PrimitiveType::I32:
+    return "i32";
+  case PrimitiveType::F32:
+    return "f32";
   }
 
   UNREACHABLE();

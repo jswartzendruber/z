@@ -14,6 +14,10 @@ std::string primitiveTypeToString(PrimitiveType type) {
     return "int64_t";
   case PrimitiveType::F64:
     return "double";
+  case PrimitiveType::I32:
+    return "int32_t";
+  case PrimitiveType::F32:
+    return "float";
   }
 
   UNREACHABLE();

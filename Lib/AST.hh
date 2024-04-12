@@ -62,7 +62,9 @@ public:
     String,
     Void,
     I64,
+    I32,
     F64,
+    F32,
   } type;
 
   PrimitiveType() = delete;
