@@ -261,6 +261,20 @@ void AnalyzerVisitor::visitFunctionParameter(Parameter *parameter) {
   }
 }
 
+void AnalyzerVisitor::visitReturnStatement(ReturnStatement *returnStatement) {
+  if (returnStatement->val.has_value()) {
+    auto ty = determineTypeOfExpression(returnStatement->val.value().get());
+
+    if (ty != currentFunctionDeclaration->header.annotatedType) {
+      std::stringstream ss;
+      ss << "in function '" << currentFunctionDeclaration->header.name << "', ";
+      ss << "return statement has type '" << ty << "' but expected type '"
+         << currentFunctionDeclaration->header.annotatedType.value() << "'.";
+      report(ss.str());
+    }
+  }
+}
+
 void AnalyzerVisitor::visitLetStatement(LetStatement *letStatement) {
   auto ty = determineTypeOfExpression(letStatement->initializer.get());
 

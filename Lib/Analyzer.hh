@@ -34,6 +34,7 @@ public:
 
   void
   visitFunctionDeclaration(FunctionDeclaration *functionDeclaration) override;
+  void visitReturnStatement(ReturnStatement *returnStatement) override;
   void visitWhileStatement(WhileStatement *whileStatement) override;
   void visitFunctionCall(FunctionCall *functionCall) override;
   void visitForStatement(ForStatement *forStatement) override;
